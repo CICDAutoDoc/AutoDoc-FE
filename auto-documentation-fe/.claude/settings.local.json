@@ -4,7 +4,10 @@
       "Bash(npx shadcn@latest init)",
       "Bash(pkill:*)",
       "Bash(npx shadcn@latest init:*)",
-      "Bash(npx shadcn@latest init -y)"
+      "Bash(npx shadcn@latest init -y)",
+      "Bash(npx shadcn@latest add card input button badge skeleton)",
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []

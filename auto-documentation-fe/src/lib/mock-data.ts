@@ -25,6 +25,7 @@ export interface FileChange {
 export interface GeneratedDocumentation {
   summary: string;
   details: string;
+  originalContent: string; // 기존 README 내용
   affectedModules: string[];
 }
 
@@ -103,17 +104,36 @@ export const mockPendingDocs: PendingDocumentation[] = [
     ],
     documentation: {
       summary: "Added user authentication system with JWT tokens",
-      details: `## Authentication System
+      originalContent: `## Auto Documentation Backend
 
-This commit introduces a new authentication system for the API.
+Backend API for the Auto Documentation service.
 
-### New Features
-- JWT-based authentication
-- Login endpoint (\`POST /auth/login\`)
-- Token validation middleware
-- User session management
+### Features
+- Repository monitoring
+- Automatic documentation generation
 
-### API Endpoints
+### Getting Started
+
+Install dependencies:
+\`\`\`bash
+npm install
+\`\`\`
+
+Run the server:
+\`\`\`bash
+npm start
+\`\`\``,
+      details: `## Auto Documentation Backend
+
+Backend API for the Auto Documentation service.
+
+### Features
+- Repository monitoring
+- Automatic documentation generation
+- **JWT-based authentication**
+- **User session management**
+
+### Authentication
 
 #### POST /auth/login
 Authenticates a user and returns a JWT token.
@@ -138,10 +158,22 @@ Authenticates a user and returns a JWT token.
 }
 \`\`\`
 
-### Implementation Details
+**Security:**
 - Uses bcrypt for password hashing
 - JWT tokens expire after 24 hours
-- Passwords are validated with minimum 8 characters requirement`,
+- Passwords must be at least 8 characters
+
+### Getting Started
+
+Install dependencies:
+\`\`\`bash
+npm install
+\`\`\`
+
+Run the server:
+\`\`\`bash
+npm start
+\`\`\``,
       affectedModules: ["Authentication", "User Management", "Security"],
     },
     status: "pending",
@@ -186,15 +218,24 @@ Authenticates a user and returns a JWT token.
     ],
     documentation: {
       summary: "Refactored dashboard to use modular component structure",
-      details: `## Dashboard Refactoring
+      originalContent: `## Dashboard
 
-Restructured the dashboard components for better maintainability and reusability.
+The main dashboard interface.
 
-### Changes
-- Split monolithic Dashboard component into smaller, focused components
-- Created new Sidebar component for navigation
-- Updated Header component with responsive design
-- Removed deprecated old-layout component
+### Features
+- User statistics
+- Activity feed
+- Quick actions`,
+      details: `## Dashboard
+
+The main dashboard interface with improved modular structure.
+
+### Features
+- User statistics
+- Activity feed
+- Quick actions
+- **Modular navigation sidebar**
+- **Responsive header with user profile**
 
 ### Component Structure
 \`\`\`
@@ -250,17 +291,19 @@ Dashboard/
     ],
     documentation: {
       summary: "Fixed rate limiting bypass issue and improved error handling",
-      details: `## Rate Limiting Fix
+      originalContent: `## API Gateway
 
-### Problem
-The rate limiter was allowing requests to bypass limits under certain conditions.
+Gateway service for routing API requests.
 
-### Solution
-- Fixed token bucket algorithm implementation
-- Added proper error handling for Redis connection failures
-- Improved rate limit configuration management
+### Rate Limiting
+Basic rate limiting is configured at 100 requests per 15 minutes.`,
+      details: `## API Gateway
 
-### Configuration Updates
+Gateway service for routing API requests.
+
+### Rate Limiting
+**Fixed:** Rate limiter bypass issue resolved with improved token bucket algorithm.
+
 Rate limits are now configurable per endpoint:
 \`\`\`typescript
 {
@@ -270,8 +313,12 @@ Rate limits are now configurable per endpoint:
 }
 \`\`\`
 
+**Error Handling:**
+- Added proper handling for Redis connection failures
+- Graceful degradation when rate limiter is unavailable
+
 ### Testing
-Added comprehensive tests covering:
+Comprehensive test coverage including:
 - Normal rate limiting behavior
 - Redis failure scenarios
 - Multiple concurrent requests

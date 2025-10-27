@@ -11,11 +11,21 @@ export default function Home() {
   const [docs, setDocs] = useState<PendingDocumentation[]>(mockPendingDocs);
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
 
-  const handleApprove = (id: string) => {
+  const handleApprove = (id: string, editedDoc?: string) => {
     setDocs((prevDocs) =>
-      prevDocs.map((doc) =>
-        doc.id === id ? { ...doc, status: "approved" as const } : doc
-      )
+      prevDocs.map((doc) => {
+        if (doc.id === id) {
+          const updatedDoc = { ...doc, status: "approved" as const };
+          if (editedDoc) {
+            updatedDoc.documentation = {
+              ...updatedDoc.documentation,
+              details: editedDoc,
+            };
+          }
+          return updatedDoc;
+        }
+        return doc;
+      })
     );
   };
 

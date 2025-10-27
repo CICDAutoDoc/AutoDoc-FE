@@ -23,13 +23,17 @@ import {
   Plus,
   Minus,
   Trash2,
+  Edit,
+  Save,
+  Eye,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { DiffViewer } from "@/components/diff-viewer";
 
 interface PendingDocCardProps {
   doc: PendingDocumentation;
-  onApprove: (id: string) => void;
+  onApprove: (id: string, editedDoc?: string) => void;
   onReject: (id: string) => void;
 }
 
@@ -40,6 +44,9 @@ export function PendingDocCard({
 }: PendingDocCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullDoc, setShowFullDoc] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState(doc.documentation.details);
+  const [viewMode, setViewMode] = useState<"diff" | "full" | "edit" | "preview">("diff");
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -81,6 +88,23 @@ export function PendingDocCard({
     }
   };
 
+  const handleEdit = () => {
+    setIsEditing(true);
+    setShowFullDoc(true);
+    setViewMode("edit");
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditedContent(doc.documentation.details);
+    setViewMode("diff");
+  };
+
+  const handleSaveAndApprove = () => {
+    onApprove(doc.id, editedContent);
+    setIsEditing(false);
+  };
+
   return (
     <Card className="w-full hover:shadow-lg transition-shadow">
       <CardHeader>
@@ -114,23 +138,54 @@ export function PendingDocCard({
             </div>
           </div>
           <div className="flex gap-2 ml-4">
-            <Button
-              size="sm"
-              variant="default"
-              onClick={() => onApprove(doc.id)}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <Check className="w-4 h-4 mr-1" />
-              승인
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => onReject(doc.id)}
-            >
-              <X className="w-4 h-4 mr-1" />
-              거부
-            </Button>
+            {!isEditing ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleEdit}
+                >
+                  <Edit className="w-4 h-4 mr-1" />
+                  편집
+                </Button>
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => onApprove(doc.id)}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Check className="w-4 h-4 mr-1" />
+                  승인
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => onReject(doc.id)}
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  거부
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                >
+                  취소
+                </Button>
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={handleSaveAndApprove}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Save className="w-4 h-4 mr-1" />
+                  저장 후 승인
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -202,7 +257,7 @@ export function PendingDocCard({
           )}
         </div>
 
-        {/* Full Documentation */}
+        {/* Documentation View */}
         <div>
           <button
             onClick={() => setShowFullDoc(!showFullDoc)}
@@ -213,45 +268,151 @@ export function PendingDocCard({
             ) : (
               <ChevronDown className="w-4 h-4" />
             )}
-            전체 문서 보기
+            AI 생성 문서 {isEditing && "(편집 중)"}
           </button>
 
           {showFullDoc && (
-            <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none p-4 bg-muted rounded-lg">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  code: ({ node, inline, ...props }: any) =>
-                    inline ? (
-                      <code
-                        {...props}
-                        className="bg-background px-1.5 py-0.5 rounded text-xs font-mono"
-                      />
-                    ) : (
-                      <code
-                        {...props}
-                        className="block bg-background p-3 rounded overflow-x-auto text-xs font-mono"
-                      />
-                    ),
-                  pre: ({ node, ...props }) => (
-                    <pre
-                      {...props}
-                      className="bg-background p-3 rounded overflow-x-auto"
-                    />
-                  ),
-                  h2: ({ node, ...props }) => (
-                    <h2 {...props} className="text-lg font-bold mt-4 mb-2" />
-                  ),
-                  h3: ({ node, ...props }) => (
-                    <h3 {...props} className="text-base font-bold mt-3 mb-2" />
-                  ),
-                  ul: ({ node, ...props }) => (
-                    <ul {...props} className="list-disc list-inside my-2" />
-                  ),
-                }}
-              >
-                {doc.documentation.details}
-              </ReactMarkdown>
+            <div className="space-y-3">
+              {/* View Mode Tabs */}
+              <div className="flex gap-2 mb-2">
+                {isEditing ? (
+                  <>
+                    <Button
+                      size="sm"
+                      variant={viewMode === "edit" ? "default" : "outline"}
+                      onClick={() => setViewMode("edit")}
+                    >
+                      <Edit className="w-4 h-4 mr-1" />
+                      편집
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={viewMode === "preview" ? "default" : "outline"}
+                      onClick={() => setViewMode("preview")}
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      미리보기
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      size="sm"
+                      variant={viewMode === "diff" ? "default" : "outline"}
+                      onClick={() => setViewMode("diff")}
+                    >
+                      변경사항
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={viewMode === "full" ? "default" : "outline"}
+                      onClick={() => setViewMode("full")}
+                    >
+                      전체 문서
+                    </Button>
+                  </>
+                )}
+              </div>
+
+              {/* Content based on view mode */}
+              {viewMode === "diff" && (
+                <DiffViewer
+                  oldText={doc.documentation.originalContent}
+                  newText={doc.documentation.details}
+                />
+              )}
+
+              {viewMode === "full" && (
+                <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none p-4 bg-muted rounded-lg">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      code: ({ node, inline, ...props }: any) =>
+                        inline ? (
+                          <code
+                            {...props}
+                            className="bg-background px-1.5 py-0.5 rounded text-xs font-mono"
+                          />
+                        ) : (
+                          <code
+                            {...props}
+                            className="block bg-background p-3 rounded overflow-x-auto text-xs font-mono"
+                          />
+                        ),
+                      pre: ({ node, ...props }) => (
+                        <pre
+                          {...props}
+                          className="bg-background p-3 rounded overflow-x-auto"
+                        />
+                      ),
+                      h2: ({ node, ...props }) => (
+                        <h2 {...props} className="text-lg font-bold mt-4 mb-2" />
+                      ),
+                      h3: ({ node, ...props }) => (
+                        <h3 {...props} className="text-base font-bold mt-3 mb-2" />
+                      ),
+                      ul: ({ node, ...props }) => (
+                        <ul {...props} className="list-disc list-inside my-2" />
+                      ),
+                    }}
+                  >
+                    {doc.documentation.details}
+                  </ReactMarkdown>
+                </div>
+              )}
+
+              {viewMode === "edit" && (
+                <div className="relative">
+                  <textarea
+                    value={editedContent}
+                    onChange={(e) => setEditedContent(e.target.value)}
+                    className="w-full min-h-[400px] p-4 bg-muted rounded-lg font-mono text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="마크다운 형식으로 문서를 작성하세요..."
+                  />
+                  <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-background px-2 py-1 rounded">
+                    {editedContent.length} 글자
+                  </div>
+                </div>
+              )}
+
+              {viewMode === "preview" && (
+                <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none p-4 bg-muted rounded-lg">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      code: ({ node, inline, ...props }: any) =>
+                        inline ? (
+                          <code
+                            {...props}
+                            className="bg-background px-1.5 py-0.5 rounded text-xs font-mono"
+                          />
+                        ) : (
+                          <code
+                            {...props}
+                            className="block bg-background p-3 rounded overflow-x-auto text-xs font-mono"
+                          />
+                        ),
+                      pre: ({ node, ...props }) => (
+                        <pre
+                          {...props}
+                          className="bg-background p-3 rounded overflow-x-auto"
+                        />
+                      ),
+                      h2: ({ node, ...props }) => (
+                        <h2 {...props} className="text-lg font-bold mt-4 mb-2" />
+                      ),
+                      h3: ({ node, ...props }) => (
+                        <h3 {...props} className="text-base font-bold mt-3 mb-2" />
+                      ),
+                      ul: ({ node, ...props }) => (
+                        <ul {...props} className="list-disc list-inside my-2" />
+                      ),
+                    }}
+                  >
+                    {editedContent}
+                  </ReactMarkdown>
+                </div>
+              )}
             </div>
           )}
         </div>

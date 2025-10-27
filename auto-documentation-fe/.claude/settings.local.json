@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx shadcn@latest init)",
+      "Bash(pkill:*)",
+      "Bash(npx shadcn@latest init:*)",
+      "Bash(npx shadcn@latest init -y)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

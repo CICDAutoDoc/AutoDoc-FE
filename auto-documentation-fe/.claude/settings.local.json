@@ -8,7 +8,10 @@
       "Bash(npx shadcn@latest add card input button badge skeleton)",
       "Bash(npm install:*)",
       "Bash(npm run dev:*)",
-      "WebFetch(domain:15.165.120.222)"
+      "WebFetch(domain:15.165.120.222)",
+      "Bash(curl:*)",
+      "Bash(lsof:*)",
+      "Bash(kill:*)"
     ],
     "deny": [],
     "ask": []

@@ -6,6 +6,18 @@ export interface User {
   access_token?: string;
 }
 
+// Auth callback response
+export interface AuthCallbackResponse {
+  message: string;
+  user: {
+    id: number;
+    github_id: number;
+    username: string;
+    email: string;
+  };
+  access_token: string;
+}
+
 // Repository types
 export interface Repository {
   id: number;

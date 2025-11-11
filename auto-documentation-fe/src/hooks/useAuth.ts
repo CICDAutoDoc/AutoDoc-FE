@@ -40,6 +40,7 @@ export const useAuth = (): UseAuthReturn => {
   // GitHub 로그인 시작
   const login = useCallback(() => {
     const loginUrl = initiateGitHubLogin();
+    console.log('Redirecting to:', loginUrl);
     window.location.href = loginUrl;
   }, []);
 
@@ -51,15 +52,20 @@ export const useAuth = (): UseAuthReturn => {
     try {
       const response = await handleGitHubCallback(code, state);
 
-      // 응답에서 사용자 정보 추출 (백엔드 응답 구조에 따라 조정 필요)
+      // 백엔드 응답: {"message":"Login successful","user":{...},"access_token":"..."}
       const userData: User = {
-        id: response.user_id || response.id,
-        github_username: response.github_username || response.username,
-        github_id: response.github_id,
+        id: response.user.id.toString(),
+        github_username: response.user.username,
+        github_id: response.user.github_id,
       };
 
       setUser(userData);
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
+
+      // access_token 저장
+      if (response.access_token) {
+        localStorage.setItem('access_token', response.access_token);
+      }
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to handle callback'));
       console.error('Error handling GitHub callback:', err);
@@ -74,6 +80,7 @@ export const useAuth = (): UseAuthReturn => {
     logout();
     setUser(null);
     localStorage.removeItem(USER_STORAGE_KEY);
+    localStorage.removeItem('access_token');
   }, []);
 
   return {

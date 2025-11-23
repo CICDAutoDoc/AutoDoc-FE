@@ -1,17 +1,22 @@
 import apiClient from '../client';
-import { Repository, RepositoriesResponse } from '../types';
+import { Repository, RepositoriesResponse, UserRepositoriesResponse, UserRepository } from '../types';
 
 /**
  * 사용자의 GitHub 저장소 목록 조회
  * @param userId - 사용자 ID
  * @returns 저장소 목록
  */
-export const getUserRepositories = async (userId: string): Promise<Repository[]> => {
+export const getUserRepositories = async (userId: string): Promise<UserRepository[]> => {
   try {
-    const response = await apiClient.get<RepositoriesResponse>(
+    const response = await apiClient.get<UserRepositoriesResponse>(
       `/github/repositories/${userId}`
     );
-    return response.data.repositories || response.data as any;
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || '저장소 목록을 불러오는데 실패했습니다.');
+    }
+
+    return response.data.repositories;
   } catch (error) {
     console.error('Failed to fetch repositories:', error);
     throw error;
@@ -19,21 +24,19 @@ export const getUserRepositories = async (userId: string): Promise<Repository[]>
 };
 
 /**
- * 특정 저장소 정보 조회 (필요시 백엔드에 추가 엔드포인트 요청)
+ * 특정 저장소 정보 조회
  * @param userId - 사용자 ID
- * @param repoOwner - 저장소 소유자
- * @param repoName - 저장소 이름
+ * @param fullName - 저장소 full_name (예: "owner/repo")
  * @returns 저장소 정보
  */
 export const getRepository = async (
   userId: string,
-  repoOwner: string,
-  repoName: string
-): Promise<Repository | null> => {
+  fullName: string
+): Promise<UserRepository | null> => {
   try {
     const repositories = await getUserRepositories(userId);
     const repo = repositories.find(
-      (r) => r.owner.login === repoOwner && r.name === repoName
+      (r) => r.full_name === fullName
     );
     return repo || null;
   } catch (error) {

@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { mockPendingDocs, mockRepositories, PendingDocumentation } from "@/lib/mock-data";
 import { PendingDocCard } from "@/components/pending-doc-card";
+import { RepositoryList } from "@/components/repository-list";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, CheckCircle, XCircle, Clock, Filter, Github, LogOut, Loader2 } from "lucide-react";
+import { FileText, CheckCircle, XCircle, Clock, Filter, Github, LogOut, Loader2, FolderGit2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function Home() {
@@ -130,6 +131,15 @@ export default function Home() {
       </header>
 
       <div className="container mx-auto px-4 py-6 max-w-6xl">
+        {/* Repository List Section */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <FolderGit2 className="w-5 h-5 text-primary" />
+            <h2 className="text-xl font-semibold">내 저장소</h2>
+          </div>
+          <RepositoryList userId={user.id} />
+        </div>
+
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-card border border-border rounded-lg p-4">

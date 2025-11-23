@@ -46,6 +46,22 @@ export interface RepositoriesResponse {
   repositories: Repository[];
 }
 
+// 사용자 저장소 목록 조회 응답 (백엔드 /github/webhooks/{user_id})
+export interface UserRepositoriesResponse {
+  success: boolean;
+  repositories: UserRepository[];
+  total: number;
+  error: string | null;
+}
+
+export interface UserRepository {
+  name: string;
+  full_name: string;
+  private: boolean;
+  default_branch: string;
+  permissions?: Record<string, any>;
+}
+
 // Webhook types
 export interface Webhook {
   id: number;
@@ -121,6 +137,33 @@ export interface PendingDocumentation {
   status: "pending" | "approved" | "rejected";
   createdAt: string;
   diff?: string;
+}
+
+// Document types
+export interface Document {
+  id: number;
+  title: string;
+  content: string;
+  summary: string;
+  status: string;
+  document_type: string;
+  commit_sha: string;
+  repository_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LatestDocumentResponse {
+  id: number;
+  title: string;
+  content: string;
+  summary: string;
+  status: string;
+  document_type: string;
+  commit_sha: string;
+  repository_name: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // API Error types

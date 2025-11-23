@@ -13,9 +13,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Lock, Unlock, GitBranch, AlertCircle, FileText, Webhook as WebhookIcon } from "lucide-react";
+import { Lock, Unlock, GitBranch, AlertCircle, FileText, Webhook as WebhookIcon, Settings } from "lucide-react";
 import { DocumentViewer } from "./document-viewer";
+import { WebhookSetupDialog } from "./webhook-setup-dialog";
 
 interface RepositoryListProps {
   userId: string;
@@ -29,6 +31,8 @@ export function RepositoryList({ userId }: RepositoryListProps) {
   const [loadingDocument, setLoadingDocument] = useState(false);
   const [documentError, setDocumentError] = useState<string | null>(null);
   const [webhooks, setWebhooks] = useState<Record<string, Webhook[]>>({});
+  const [setupDialogOpen, setSetupDialogOpen] = useState(false);
+  const [selectedRepo, setSelectedRepo] = useState<UserRepository | null>(null);
 
   useEffect(() => {
     const fetchRepositories = async () => {
@@ -109,6 +113,31 @@ export function RepositoryList({ userId }: RepositoryListProps) {
   const handleCloseDocument = () => {
     setSelectedDocument(null);
     setDocumentError(null);
+  };
+
+  const handleOpenSetupDialog = (repo: UserRepository, e: React.MouseEvent) => {
+    e.stopPropagation(); // 카드 클릭 이벤트 방지
+    setSelectedRepo(repo);
+    setSetupDialogOpen(true);
+  };
+
+  const refreshWebhooks = async (repo: UserRepository) => {
+    try {
+      const [owner, name] = repo.full_name.split("/");
+      const repoWebhooks = await getRepositoryWebhooks(owner, name, userId);
+      setWebhooks((prev) => ({
+        ...prev,
+        [repo.full_name]: repoWebhooks,
+      }));
+    } catch (err) {
+      console.error(`Failed to refresh webhooks for ${repo.full_name}:`, err);
+    }
+  };
+
+  const handleWebhookSetupSuccess = () => {
+    if (selectedRepo) {
+      refreshWebhooks(selectedRepo);
+    }
   };
 
   if (loading) {
@@ -241,19 +270,39 @@ export function RepositoryList({ userId }: RepositoryListProps) {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-sm text-muted-foreground flex items-center justify-between">
-                <div>
+              <div className="flex items-center justify-between gap-4">
+                <div className="text-sm text-muted-foreground flex-1">
                   <span className="font-medium">Repository:</span> {repo.name}
                 </div>
-                <div className="flex items-center gap-1 text-primary">
-                  <FileText className="w-4 h-4" />
-                  <span className="text-xs">최신 문서 보기</span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => handleOpenSetupDialog(repo, e)}
+                    className="text-xs"
+                  >
+                    <Settings className="w-3 h-3 mr-1" />
+                    웹훅 설정
+                  </Button>
+                  <div className="flex items-center gap-1 text-primary text-xs">
+                    <FileText className="w-4 h-4" />
+                    <span>최신 문서 보기</span>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         );
       })}
+
+      {/* 웹훅 설정 다이얼로그 */}
+      <WebhookSetupDialog
+        repository={selectedRepo}
+        userId={userId}
+        open={setupDialogOpen}
+        onOpenChange={setSetupDialogOpen}
+        onSuccess={handleWebhookSetupSuccess}
+      />
     </div>
   );
 }

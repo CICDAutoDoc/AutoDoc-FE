@@ -87,7 +87,8 @@ export interface WebhooksResponse {
 export interface SetupRepositoryRequest {
   repo_owner: string;
   repo_name: string;
-  webhook_url?: string;
+  access_token: string;
+  webhook_url: string;
 }
 
 export interface SetupRepositoryResponse {

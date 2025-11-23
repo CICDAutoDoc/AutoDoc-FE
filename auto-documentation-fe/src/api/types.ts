@@ -73,12 +73,15 @@ export interface Webhook {
     content_type: string;
     insecure_ssl?: string;
   };
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface WebhooksResponse {
+  success: boolean;
   webhooks: Webhook[];
+  total: number;
+  error: string | null;
 }
 
 export interface SetupRepositoryRequest {

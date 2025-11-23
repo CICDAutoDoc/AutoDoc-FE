@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { UserRepository, Document } from "@/api/types";
+import { UserRepository, Document, Webhook } from "@/api/types";
 import { getUserRepositories } from "@/api/endpoints/repositories";
 import { getLatestDocument } from "@/api/endpoints/documents";
+import { getRepositoryWebhooks } from "@/api/endpoints/webhooks";
 import {
   Card,
   CardContent,
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Lock, Unlock, GitBranch, AlertCircle, FileText } from "lucide-react";
+import { Lock, Unlock, GitBranch, AlertCircle, FileText, Webhook as WebhookIcon } from "lucide-react";
 import { DocumentViewer } from "./document-viewer";
 
 interface RepositoryListProps {
@@ -27,6 +28,7 @@ export function RepositoryList({ userId }: RepositoryListProps) {
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [loadingDocument, setLoadingDocument] = useState(false);
   const [documentError, setDocumentError] = useState<string | null>(null);
+  const [webhooks, setWebhooks] = useState<Record<string, Webhook[]>>({});
 
   useEffect(() => {
     const fetchRepositories = async () => {
@@ -37,6 +39,26 @@ export function RepositoryList({ userId }: RepositoryListProps) {
         setError(null);
         const repos = await getUserRepositories(userId);
         setRepositories(repos);
+
+        // 각 레포지토리의 웹훅 정보 fetch
+        const webhookPromises = repos.map(async (repo) => {
+          try {
+            const [owner, name] = repo.full_name.split("/");
+            const repoWebhooks = await getRepositoryWebhooks(owner, name, userId);
+            return { fullName: repo.full_name, webhooks: repoWebhooks };
+          } catch (err) {
+            console.error(`Failed to fetch webhooks for ${repo.full_name}:`, err);
+            return { fullName: repo.full_name, webhooks: [] };
+          }
+        });
+
+        const webhookResults = await Promise.all(webhookPromises);
+        const webhookMap = webhookResults.reduce((acc, { fullName, webhooks }) => {
+          acc[fullName] = webhooks;
+          return acc;
+        }, {} as Record<string, Webhook[]>);
+
+        setWebhooks(webhookMap);
       } catch (err: any) {
         console.error("Failed to fetch repositories:", err);
         setError(err?.message || "저장소 목록을 불러오는데 실패했습니다.");
@@ -159,53 +181,79 @@ export function RepositoryList({ userId }: RepositoryListProps) {
       )}
 
       {/* 레포지토리 목록 */}
-      {repositories.map((repo) => (
-        <Card
-          key={repo.full_name}
-          className="hover:shadow-md transition-shadow cursor-pointer"
-          onClick={() => handleRepositoryClick(repo)}
-        >
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <CardTitle className="text-xl font-semibold">
-                  {repo.full_name}
-                </CardTitle>
-                <CardDescription className="mt-1 flex items-center gap-2">
-                  <span className="flex items-center gap-1">
-                    <GitBranch className="w-4 h-4" />
-                    {repo.default_branch}
-                  </span>
-                </CardDescription>
+      {repositories.map((repo) => {
+        const repoWebhooks = webhooks[repo.full_name] || [];
+        const activeWebhooks = repoWebhooks.filter((w) => w.active);
+        const hasWebhooks = repoWebhooks.length > 0;
+
+        return (
+          <Card
+            key={repo.full_name}
+            className="hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => handleRepositoryClick(repo)}
+          >
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-xl font-semibold">
+                    {repo.full_name}
+                  </CardTitle>
+                  <CardDescription className="mt-1 flex items-center gap-2">
+                    <span className="flex items-center gap-1">
+                      <GitBranch className="w-4 h-4" />
+                      {repo.default_branch}
+                    </span>
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={repo.private ? "default" : "secondary"}>
+                    {repo.private ? (
+                      <span className="flex items-center gap-1">
+                        <Lock className="w-3 h-3" />
+                        Private
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1">
+                        <Unlock className="w-3 h-3" />
+                        Public
+                      </span>
+                    )}
+                  </Badge>
+                  <Badge
+                    variant={
+                      activeWebhooks.length > 0
+                        ? "default"
+                        : hasWebhooks
+                        ? "outline"
+                        : "destructive"
+                    }
+                  >
+                    <span className="flex items-center gap-1">
+                      <WebhookIcon className="w-3 h-3" />
+                      {activeWebhooks.length > 0
+                        ? `웹훅 ${activeWebhooks.length}개`
+                        : hasWebhooks
+                        ? "비활성"
+                        : "미설정"}
+                    </span>
+                  </Badge>
+                </div>
               </div>
-              <Badge variant={repo.private ? "default" : "secondary"}>
-                {repo.private ? (
-                  <span className="flex items-center gap-1">
-                    <Lock className="w-3 h-3" />
-                    Private
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <Unlock className="w-3 h-3" />
-                    Public
-                  </span>
-                )}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm text-muted-foreground flex items-center justify-between">
-              <div>
-                <span className="font-medium">Repository:</span> {repo.name}
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-muted-foreground flex items-center justify-between">
+                <div>
+                  <span className="font-medium">Repository:</span> {repo.name}
+                </div>
+                <div className="flex items-center gap-1 text-primary">
+                  <FileText className="w-4 h-4" />
+                  <span className="text-xs">최신 문서 보기</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1 text-primary">
-                <FileText className="w-4 h-4" />
-                <span className="text-xs">최신 문서 보기</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }

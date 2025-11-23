@@ -23,7 +23,12 @@ export const getRepositoryWebhooks = async (
     const response = await apiClient.get<WebhooksResponse>(
       `/github/webhooks/${repoOwner}/${repoName}/${userId}`
     );
-    return response.data.webhooks || response.data as any;
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || '웹훅 목록을 불러오는데 실패했습니다.');
+    }
+
+    return response.data.webhooks;
   } catch (error) {
     console.error('Failed to fetch webhooks:', error);
     throw error;

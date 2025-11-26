@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { UserRepository, Document, Webhook } from "@/api/types";
-import { getUserRepositories } from "@/api/endpoints/repositories";
-import { getLatestDocument } from "@/api/endpoints/documents";
-import { getRepositoryWebhooks } from "@/api/endpoints/webhooks";
+import { useState, useMemo } from "react";
+import { UserRepository, Document } from "@/api/types";
+import { useRepositories } from "@/hooks/useRepositories";
+import { useMultipleWebhooks } from "@/hooks/useWebhooks";
+import { useLatestDocument } from "@/hooks/useDocument";
 import {
   Card,
   CardContent,
@@ -24,95 +24,45 @@ interface RepositoryListProps {
 }
 
 export function RepositoryList({ userId }: RepositoryListProps) {
-  const [repositories, setRepositories] = useState<UserRepository[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
-  const [loadingDocument, setLoadingDocument] = useState(false);
-  const [documentError, setDocumentError] = useState<string | null>(null);
-  const [webhooks, setWebhooks] = useState<Record<string, Webhook[]>>({});
-  const [setupDialogOpen, setSetupDialogOpen] = useState(false);
   const [selectedRepo, setSelectedRepo] = useState<UserRepository | null>(null);
+  const [setupDialogOpen, setSetupDialogOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchRepositories = async () => {
-      if (!userId) return;
+  // React Query로 레포지토리 목록 조회
+  const {
+    data: repositories = [],
+    isLoading: loadingRepositories,
+    error: repositoriesError,
+  } = useRepositories(userId);
 
-      try {
-        setLoading(true);
-        setError(null);
-        const repos = await getUserRepositories(userId);
-        setRepositories(repos);
+  // 레포지토리 목록에서 owner/name 추출
+  const repoList = useMemo(
+    () =>
+      repositories.map((repo) => {
+        const [owner, name] = repo.full_name.split("/");
+        return { owner, name };
+      }),
+    [repositories]
+  );
 
-        // 각 레포지토리의 웹훅 정보 fetch
-        const webhookPromises = repos.map(async (repo) => {
-          try {
-            const [owner, name] = repo.full_name.split("/");
-            const repoWebhooks = await getRepositoryWebhooks(owner, name, userId);
-            return { fullName: repo.full_name, webhooks: repoWebhooks };
-          } catch (err) {
-            console.error(`Failed to fetch webhooks for ${repo.full_name}:`, err);
-            return { fullName: repo.full_name, webhooks: [] };
-          }
-        });
+  // 모든 레포지토리의 웹훅 정보 조회
+  const { data: webhooks = {} } = useMultipleWebhooks(repoList, userId);
 
-        const webhookResults = await Promise.all(webhookPromises);
-        const webhookMap = webhookResults.reduce((acc, { fullName, webhooks }) => {
-          acc[fullName] = webhooks;
-          return acc;
-        }, {} as Record<string, Webhook[]>);
+  // 선택된 레포지토리의 최신 문서 조회
+  const selectedRepoOwner = selectedRepo?.full_name.split("/")[0] || "";
+  const selectedRepoName = selectedRepo?.full_name.split("/")[1] || "";
 
-        setWebhooks(webhookMap);
-      } catch (err: any) {
-        console.error("Failed to fetch repositories:", err);
-        setError(err?.message || "저장소 목록을 불러오는데 실패했습니다.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const {
+    data: selectedDocument,
+    isLoading: loadingDocument,
+    error: documentError,
+  } = useLatestDocument(selectedRepoOwner, selectedRepoName);
 
-    fetchRepositories();
-  }, [userId]);
-
-  const handleRepositoryClick = async (repo: UserRepository) => {
-    try {
-      setLoadingDocument(true);
-      setDocumentError(null);
-
-      // full_name은 "owner/repo" 형식
-      const [owner, name] = repo.full_name.split("/");
-      console.log("Fetching document for:", { owner, name, fullName: repo.full_name });
-      const document = await getLatestDocument(owner, name);
-      console.log("Document fetched:", document);
-      setSelectedDocument(document);
-    } catch (err: any) {
-      console.error("Failed to fetch latest document:", err);
-      console.error("Error details:", {
-        status: err?.response?.status,
-        statusText: err?.response?.statusText,
-        data: err?.response?.data,
-        url: err?.config?.url,
-      });
-
-      let errorMessage = "문서를 불러오는데 실패했습니다.";
-      if (err?.response?.status === 404) {
-        errorMessage = "해당 저장소의 문서를 찾을 수 없습니다. 문서가 아직 생성되지 않았을 수 있습니다.";
-      } else if (err?.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err?.message) {
-        errorMessage = err.message;
-      }
-
-      setDocumentError(errorMessage);
-      setSelectedDocument(null);
-    } finally {
-      setLoadingDocument(false);
-    }
+  const handleRepositoryClick = (repo: UserRepository) => {
+    setSelectedRepo(repo);
   };
 
   const handleCloseDocument = () => {
-    setSelectedDocument(null);
-    setDocumentError(null);
+    setSelectedRepo(null);
   };
 
   const handleOpenSetupDialog = (repo: UserRepository, e: React.MouseEvent) => {
@@ -121,26 +71,7 @@ export function RepositoryList({ userId }: RepositoryListProps) {
     setSetupDialogOpen(true);
   };
 
-  const refreshWebhooks = async (repo: UserRepository) => {
-    try {
-      const [owner, name] = repo.full_name.split("/");
-      const repoWebhooks = await getRepositoryWebhooks(owner, name, userId);
-      setWebhooks((prev) => ({
-        ...prev,
-        [repo.full_name]: repoWebhooks,
-      }));
-    } catch (err) {
-      console.error(`Failed to refresh webhooks for ${repo.full_name}:`, err);
-    }
-  };
-
-  const handleWebhookSetupSuccess = () => {
-    if (selectedRepo) {
-      refreshWebhooks(selectedRepo);
-    }
-  };
-
-  if (loading) {
+  if (loadingRepositories) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-32 w-full" />
@@ -150,13 +81,13 @@ export function RepositoryList({ userId }: RepositoryListProps) {
     );
   }
 
-  if (error) {
+  if (repositoriesError) {
     return (
       <Card className="border-red-200 bg-red-50">
         <CardContent className="pt-6">
           <div className="flex items-center gap-2 text-red-600">
             <AlertCircle className="w-5 h-5" />
-            <p>{error}</p>
+            <p>{repositoriesError.message || "저장소 목록을 불러오는데 실패했습니다."}</p>
           </div>
         </CardContent>
       </Card>
@@ -198,12 +129,16 @@ export function RepositoryList({ userId }: RepositoryListProps) {
       )}
 
       {/* 문서 로드 에러 */}
-      {documentError && (
+      {documentError && selectedRepo && (
         <Card className="border-red-200 bg-red-50">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-red-600">
               <AlertCircle className="w-5 h-5" />
-              <p>{documentError}</p>
+              <p>
+                {(documentError as any)?.response?.status === 404
+                  ? "해당 저장소의 문서를 찾을 수 없습니다. 문서가 아직 생성되지 않았을 수 있습니다."
+                  : documentError.message || "문서를 불러오는데 실패했습니다."}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -301,7 +236,6 @@ export function RepositoryList({ userId }: RepositoryListProps) {
         userId={userId}
         open={setupDialogOpen}
         onOpenChange={setSetupDialogOpen}
-        onSuccess={handleWebhookSetupSuccess}
       />
     </div>
   );

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UserRepository } from "@/api/types";
-import { setupRepository } from "@/api/endpoints/webhooks";
+import { useSetupWebhook } from "@/hooks/useWebhooks";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +21,6 @@ interface WebhookSetupDialogProps {
   userId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
 }
 
 export function WebhookSetupDialog({
@@ -29,63 +28,55 @@ export function WebhookSetupDialog({
   userId,
   open,
   onOpenChange,
-  onSuccess,
 }: WebhookSetupDialogProps) {
   const [webhookUrl, setWebhookUrl] = useState("http://15.165.120.222/github/webhook");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const setupWebhook = useSetupWebhook();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!repository) return;
 
-    try {
-      setLoading(true);
-      setError(null);
-      setSuccess(false);
+    const [owner, name] = repository.full_name.split("/");
+    const accessToken = localStorage.getItem("access_token");
 
-      const [owner, name] = repository.full_name.split("/");
-      const accessToken = localStorage.getItem("access_token");
-
-      if (!accessToken) {
-        throw new Error("인증 토큰이 없습니다. 다시 로그인해주세요.");
-      }
-
-      await setupRepository(userId, {
-        repo_owner: owner,
-        repo_name: name,
-        access_token: accessToken,
-        webhook_url: webhookUrl,
-      });
-
-      setSuccess(true);
-
-      // 2초 후 다이얼로그 닫기 및 성공 콜백 호출
-      setTimeout(() => {
-        onOpenChange(false);
-        onSuccess();
-        setSuccess(false);
-      }, 2000);
-    } catch (err: any) {
-      console.error("Failed to setup webhook:", err);
-      setError(
-        err?.response?.data?.detail ||
-          err?.response?.data?.message ||
-          err?.message ||
-          "웹훅 설정에 실패했습니다."
-      );
-    } finally {
-      setLoading(false);
+    if (!accessToken) {
+      console.error("인증 토큰이 없습니다. 다시 로그인해주세요.");
+      return;
     }
+
+    setupWebhook.mutate(
+      {
+        userId,
+        data: {
+          repo_owner: owner,
+          repo_name: name,
+          access_token: accessToken,
+          webhook_url: webhookUrl,
+        },
+      },
+      {
+        onSuccess: () => {
+          // 2초 후 다이얼로그 닫기
+          setTimeout(() => {
+            onOpenChange(false);
+            setupWebhook.reset();
+          }, 2000);
+        },
+      }
+    );
   };
 
+  // 다이얼로그가 닫힐 때 mutation 상태 리셋
+  useEffect(() => {
+    if (!open) {
+      setupWebhook.reset();
+    }
+  }, [open, setupWebhook]);
+
   const handleClose = () => {
-    if (!loading) {
+    if (!setupWebhook.isPending) {
       onOpenChange(false);
-      setError(null);
-      setSuccess(false);
     }
   };
 
@@ -111,21 +102,26 @@ export function WebhookSetupDialog({
                 value={webhookUrl}
                 onChange={(e) => setWebhookUrl(e.target.value)}
                 required
-                disabled={loading || success}
+                disabled={setupWebhook.isPending || setupWebhook.isSuccess}
               />
               <p className="text-xs text-muted-foreground">
                 GitHub 이벤트를 수신할 엔드포인트 URL을 입력하세요.
               </p>
             </div>
 
-            {error && (
+            {setupWebhook.isError && (
               <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 rounded-md">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <p>{error}</p>
+                <p>
+                  {(setupWebhook.error as any)?.response?.data?.detail ||
+                    (setupWebhook.error as any)?.response?.data?.message ||
+                    setupWebhook.error?.message ||
+                    "웹훅 설정에 실패했습니다."}
+                </p>
               </div>
             )}
 
-            {success && (
+            {setupWebhook.isSuccess && (
               <div className="flex items-center gap-2 p-3 text-sm text-green-600 bg-green-50 rounded-md">
                 <CheckCircle className="w-4 h-4 flex-shrink-0" />
                 <p>웹훅이 성공적으로 설정되었습니다!</p>
@@ -138,12 +134,12 @@ export function WebhookSetupDialog({
               type="button"
               variant="outline"
               onClick={handleClose}
-              disabled={loading || success}
+              disabled={setupWebhook.isPending || setupWebhook.isSuccess}
             >
               취소
             </Button>
-            <Button type="submit" disabled={loading || success}>
-              {loading ? (
+            <Button type="submit" disabled={setupWebhook.isPending || setupWebhook.isSuccess}>
+              {setupWebhook.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   설정 중...

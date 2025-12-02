@@ -53,10 +53,7 @@ export const useSetupWebhook = () => {
     onSuccess: (_, variables) => {
       // 성공 후 해당 레포지토리의 웹훅 쿼리 무효화
       queryClient.invalidateQueries({
-        queryKey: ['webhooks', variables.data.repo_owner, variables.data.repo_name],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['webhooks', 'multiple'],
+        queryKey: ['webhooks', variables.data.repo_owner, variables.data.repo_name, variables.userId],
       });
     },
   });
@@ -81,10 +78,7 @@ export const useDeleteWebhook = () => {
     onSuccess: (_, variables) => {
       // 성공 후 해당 레포지토리의 웹훅 쿼리 무효화
       queryClient.invalidateQueries({
-        queryKey: ['webhooks', variables.repoOwner, variables.repoName],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['webhooks', 'multiple'],
+        queryKey: ['webhooks', variables.repoOwner, variables.repoName, variables.userId],
       });
     },
   });

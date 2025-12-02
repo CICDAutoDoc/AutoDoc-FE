@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Document } from "@/api/types";
 import {
   Card,
@@ -14,6 +14,67 @@ import { Button } from "@/components/ui/button";
 import { FileText, Calendar, GitCommit, X, Code, Eye } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import mermaid from "mermaid";
+
+// Mermaid 초기화
+mermaid.initialize({
+  startOnLoad: false,
+  theme: "default",
+  securityLevel: "loose",
+  fontFamily: "inherit",
+});
+
+// Mermaid 다이어그램 컴포넌트
+function MermaidDiagram({ chart }: { chart: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [svg, setSvg] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const renderDiagram = async () => {
+      if (!chart.trim()) return;
+
+      try {
+        const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+        const { svg } = await mermaid.render(id, chart);
+        setSvg(svg);
+        setError(null);
+      } catch (err) {
+        console.error("Mermaid rendering error:", err);
+        setError("다이어그램을 렌더링할 수 없습니다.");
+      }
+    };
+
+    renderDiagram();
+  }, [chart]);
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 my-4">
+        <p className="text-red-600 text-sm">{error}</p>
+        <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-x-auto">
+          {chart}
+        </pre>
+      </div>
+    );
+  }
+
+  if (!svg) {
+    return (
+      <div className="bg-muted rounded-lg p-4 my-4 animate-pulse">
+        <div className="h-32 bg-muted-foreground/10 rounded"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      className="my-4 p-4 bg-white rounded-lg border overflow-x-auto flex justify-center"
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
+  );
+}
 
 interface DocumentViewerProps {
   document: Document;
@@ -144,6 +205,15 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
                 ),
                 li: ({ children }) => <li className="ml-2">{children}</li>,
                 code: ({ className, children, ...props }) => {
+                  const match = /language-(\w+)/.exec(className || "");
+                  const language = match ? match[1] : "";
+
+                  // Mermaid 코드 블록 처리
+                  if (language === "mermaid") {
+                    const chart = String(children).replace(/\n$/, "");
+                    return <MermaidDiagram chart={chart} />;
+                  }
+
                   const isInline = !className;
                   if (isInline) {
                     return (
@@ -161,11 +231,20 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
                     </code>
                   );
                 },
-                pre: ({ children }) => (
-                  <pre className="bg-muted p-4 rounded-lg overflow-x-auto my-4 text-sm">
-                    {children}
-                  </pre>
-                ),
+                pre: ({ children }) => {
+                  // Mermaid인 경우 pre 래퍼 제거
+                  const child = children as React.ReactElement<{ className?: string }>;
+                  if (
+                    child?.props?.className?.includes("language-mermaid")
+                  ) {
+                    return <>{children}</>;
+                  }
+                  return (
+                    <pre className="bg-muted p-4 rounded-lg overflow-x-auto my-4 text-sm">
+                      {children}
+                    </pre>
+                  );
+                },
                 blockquote: ({ children }) => (
                   <blockquote className="border-l-4 border-primary pl-4 my-4 italic text-muted-foreground">
                     {children}

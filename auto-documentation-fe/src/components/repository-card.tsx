@@ -29,7 +29,7 @@ interface RepositoryCardProps {
 }
 
 export function RepositoryCard({ repository, userId, onClick }: RepositoryCardProps) {
-  const webhookUrl = "http://15.165.120.222/github/webhook";
+  const webhookUrl = "http://15.165.120.222";
   const [owner, name] = repository.full_name.split("/");
 
   const setupWebhook = useSetupWebhook();

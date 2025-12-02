@@ -29,7 +29,7 @@ export function WebhookSetupDialog({
   open,
   onOpenChange,
 }: WebhookSetupDialogProps) {
-  const [webhookUrl, setWebhookUrl] = useState("http://15.165.120.222/github/webhook");
+  const webhookUrl = "http://15.165.120.222/github/webhook";
   const setupWebhook = useSetupWebhook();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -100,7 +100,6 @@ export function WebhookSetupDialog({
                 type="url"
                 placeholder="https://api.example.com/webhook"
                 value={webhookUrl}
-                onChange={(e) => setWebhookUrl(e.target.value)}
                 required
                 disabled={setupWebhook.isPending || setupWebhook.isSuccess}
               />

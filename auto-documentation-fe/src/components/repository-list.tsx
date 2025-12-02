@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { UserRepository, Document } from "@/api/types";
+import { UserRepository } from "@/api/types";
 import { useRepositories } from "@/hooks/useRepositories";
-import { useMultipleWebhooks } from "@/hooks/useWebhooks";
+import { useMultipleWebhooks, useSetupWebhook, useDeleteWebhook } from "@/hooks/useWebhooks";
 import { useLatestDocument } from "@/hooks/useDocument";
 import {
   Card,
@@ -15,9 +15,18 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Lock, Unlock, GitBranch, AlertCircle, FileText, Webhook as WebhookIcon, Settings } from "lucide-react";
+import {
+  Lock,
+  Unlock,
+  GitBranch,
+  AlertCircle,
+  FileText,
+  Webhook as WebhookIcon,
+  Settings,
+  Loader2,
+  Trash2,
+} from "lucide-react";
 import { DocumentViewer } from "./document-viewer";
-import { WebhookSetupDialog } from "./webhook-setup-dialog";
 
 interface RepositoryListProps {
   userId: string;
@@ -25,7 +34,10 @@ interface RepositoryListProps {
 
 export function RepositoryList({ userId }: RepositoryListProps) {
   const [selectedRepo, setSelectedRepo] = useState<UserRepository | null>(null);
-  const [setupDialogOpen, setSetupDialogOpen] = useState(false);
+  const webhookUrl = "http://15.165.120.222/github/webhook";
+
+  const setupWebhook = useSetupWebhook();
+  const deleteWebhook = useDeleteWebhook();
 
   // React Query로 레포지토리 목록 조회
   const {
@@ -65,10 +77,46 @@ export function RepositoryList({ userId }: RepositoryListProps) {
     setSelectedRepo(null);
   };
 
-  const handleOpenSetupDialog = (repo: UserRepository, e: React.MouseEvent) => {
+  const handleSetupWebhook = (repo: UserRepository, e: React.MouseEvent) => {
     e.stopPropagation(); // 카드 클릭 이벤트 방지
-    setSelectedRepo(repo);
-    setSetupDialogOpen(true);
+
+    const [owner, name] = repo.full_name.split("/");
+    const accessToken = localStorage.getItem("access_token");
+
+    if (!accessToken) {
+      console.error("인증 토큰이 없습니다. 다시 로그인해주세요.");
+      return;
+    }
+
+    setupWebhook.mutate({
+      userId,
+      data: {
+        repo_owner: owner,
+        repo_name: name,
+        access_token: accessToken,
+        webhook_url: webhookUrl,
+      },
+    });
+  };
+
+  const handleDeleteWebhook = (repo: UserRepository, e: React.MouseEvent) => {
+    e.stopPropagation(); // 카드 클릭 이벤트 방지
+
+    const [owner, name] = repo.full_name.split("/");
+    const repoWebhooks = webhooks[repo.full_name] || [];
+    const targetWebhook =
+      repoWebhooks.find((w) => w.active) || repoWebhooks[0];
+
+    if (!targetWebhook) {
+      return;
+    }
+
+    deleteWebhook.mutate({
+      repoOwner: owner,
+      repoName: name,
+      webhookId: targetWebhook.id,
+      userId,
+    });
   };
 
   if (loadingRepositories) {
@@ -150,6 +198,40 @@ export function RepositoryList({ userId }: RepositoryListProps) {
         const activeWebhooks = repoWebhooks.filter((w) => w.active);
         const hasWebhooks = repoWebhooks.length > 0;
 
+        const [owner, name] = repo.full_name.split("/");
+
+        const isSettingThisRepo =
+          setupWebhook.isPending &&
+          setupWebhook.variables?.data.repo_owner === owner &&
+          setupWebhook.variables?.data.repo_name === name;
+
+        const isDeletingThisRepo =
+          deleteWebhook.isPending &&
+          deleteWebhook.variables?.repoOwner === owner &&
+          deleteWebhook.variables?.repoName === name;
+
+        const isProcessing = isSettingThisRepo || isDeletingThisRepo;
+
+        const setupSuccessThisRepo =
+          setupWebhook.isSuccess &&
+          setupWebhook.variables?.data.repo_owner === owner &&
+          setupWebhook.variables?.data.repo_name === name;
+
+        const deleteSuccessThisRepo =
+          deleteWebhook.isSuccess &&
+          deleteWebhook.variables?.repoOwner === owner &&
+          deleteWebhook.variables?.repoName === name;
+
+        const setupErrorThisRepo =
+          setupWebhook.isError &&
+          setupWebhook.variables?.data.repo_owner === owner &&
+          setupWebhook.variables?.data.repo_name === name;
+
+        const deleteErrorThisRepo =
+          deleteWebhook.isError &&
+          deleteWebhook.variables?.repoOwner === owner &&
+          deleteWebhook.variables?.repoName === name;
+
         return (
           <Card
             key={repo.full_name}
@@ -213,12 +295,43 @@ export function RepositoryList({ userId }: RepositoryListProps) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={(e) => handleOpenSetupDialog(repo, e)}
+                    onClick={(e) => handleSetupWebhook(repo, e)}
                     className="text-xs"
+                    disabled={isProcessing || activeWebhooks.length > 0}
                   >
-                    <Settings className="w-3 h-3 mr-1" />
-                    웹훅 설정
+                    {isSettingThisRepo ? (
+                      <>
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        설정 중...
+                      </>
+                    ) : (
+                      <>
+                        <Settings className="w-3 h-3 mr-1" />
+                        {activeWebhooks.length > 0 ? "이미 설정됨" : "웹훅 설정"}
+                      </>
+                    )}
                   </Button>
+                  {hasWebhooks && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => handleDeleteWebhook(repo, e)}
+                      className="text-xs text-red-600 hover:text-red-700"
+                      disabled={isProcessing}
+                    >
+                      {isDeletingThisRepo ? (
+                        <>
+                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                          삭제 중...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          웹훅 삭제
+                        </>
+                      )}
+                    </Button>
+                  )}
                   <div className="flex items-center gap-1 text-primary text-xs">
                     <FileText className="w-4 h-4" />
                     <span>최신 문서 보기</span>
@@ -226,17 +339,25 @@ export function RepositoryList({ userId }: RepositoryListProps) {
                 </div>
               </div>
             </CardContent>
+            {(setupSuccessThisRepo || deleteSuccessThisRepo) && (
+              <div className="px-6 pb-4">
+                <p className="text-xs text-green-600">
+                  {setupSuccessThisRepo
+                    ? "웹훅이 성공적으로 설정되었습니다."
+                    : "웹훅이 성공적으로 삭제되었습니다."}
+                </p>
+              </div>
+            )}
+            {(setupErrorThisRepo || deleteErrorThisRepo) && (
+              <div className="px-6 pb-4">
+                <p className="text-xs text-red-600">
+                  웹훅 작업 중 오류가 발생했습니다. 다시 시도해주세요.
+                </p>
+              </div>
+            )}
           </Card>
         );
       })}
-
-      {/* 웹훅 설정 다이얼로그 */}
-      <WebhookSetupDialog
-        repository={selectedRepo}
-        userId={userId}
-        open={setupDialogOpen}
-        onOpenChange={setSetupDialogOpen}
-      />
     </div>
   );
 }

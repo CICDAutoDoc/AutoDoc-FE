@@ -86,14 +86,9 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3 bg-muted/50 rounded-full pl-4 pr-2 py-1.5">
-                <div className="text-right">
-                  <p className="text-sm font-medium leading-none">
-                    {user.github_username}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    ID: {user.github_id}
-                  </p>
-                </div>
+                <p className="text-sm font-medium">
+                  {user.github_username}
+                </p>
                 <Button
                   variant="ghost"
                   size="icon"

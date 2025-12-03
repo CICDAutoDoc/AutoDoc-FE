@@ -2,13 +2,7 @@
 
 import { UserRepository, Webhook } from "@/api/types";
 import { useSetupWebhook, useDeleteWebhook } from "@/hooks/useWebhooks";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,9 +11,12 @@ import {
   GitBranch,
   FileText,
   Webhook as WebhookIcon,
-  Settings,
   Loader2,
   Trash2,
+  Plus,
+  ChevronRight,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 
 interface RepositoryCardProps {
@@ -114,135 +111,127 @@ export function RepositoryCard({
 
   return (
     <Card
-      className="hover:shadow-md transition-shadow cursor-pointer"
+      className="group hover:shadow-lg hover:shadow-primary/5 transition-all duration-200 cursor-pointer rounded-xl border-border/50 hover:border-primary/30 overflow-hidden"
       onClick={onClick}
     >
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <CardTitle className="text-xl font-semibold">
-              {repository.full_name}
-            </CardTitle>
-            <CardDescription className="mt-1 flex items-center gap-2">
+      <div className="p-5">
+        <div className="flex items-start justify-between gap-4">
+          {/* 왼쪽: 레포 정보 */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="font-semibold text-lg truncate group-hover:text-primary transition-colors">
+                {repository.name}
+              </h3>
+              <Badge
+                variant="outline"
+                className={`shrink-0 text-xs ${
+                  repository.private
+                    ? "border-amber-300 text-amber-600 bg-amber-50"
+                    : "border-emerald-300 text-emerald-600 bg-emerald-50"
+                }`}
+              >
+                {repository.private ? (
+                  <Lock className="w-3 h-3 mr-1" />
+                ) : (
+                  <Unlock className="w-3 h-3 mr-1" />
+                )}
+                {repository.private ? "Private" : "Public"}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded">
+                {owner}
+              </span>
               <span className="flex items-center gap-1">
-                <GitBranch className="w-4 h-4" />
+                <GitBranch className="w-3.5 h-3.5" />
                 {repository.default_branch}
               </span>
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant={repository.private ? "default" : "secondary"}>
-              {repository.private ? (
+              {loadingWebhooks ? (
                 <span className="flex items-center gap-1">
-                  <Lock className="w-3 h-3" />
-                  Private
-                </span>
-              ) : (
-                <span className="flex items-center gap-1">
-                  <Unlock className="w-3 h-3" />
-                  Public
-                </span>
-              )}
-            </Badge>
-            {loadingWebhooks ? (
-              <Badge variant="outline">
-                <span className="flex items-center gap-1">
-                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   로딩 중
                 </span>
-              </Badge>
-            ) : (
-              <Badge
-                variant={
-                  activeWebhooks.length > 0
-                    ? "default"
-                    : hasWebhooks
-                    ? "outline"
-                    : "destructive"
-                }
-              >
-                <span className="flex items-center gap-1">
-                  <WebhookIcon className="w-3 h-3" />
-                  {activeWebhooks.length > 0
-                    ? `웹훅 ${activeWebhooks.length}개`
-                    : hasWebhooks
-                    ? "비활성"
-                    : "미설정"}
-                </span>
-              </Badge>
-            )}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center justify-between gap-4">
-          <div className="text-sm text-muted-foreground flex-1">
-            <span className="font-medium">Repository:</span> {repository.name}
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSetupWebhook}
-              className="text-xs"
-              disabled={isProcessing || activeWebhooks.length > 0 || loadingWebhooks}
-            >
-              {isSettingThisRepo ? (
-                <>
-                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                  설정 중...
-                </>
               ) : (
-                <>
-                  <Settings className="w-3 h-3 mr-1" />
-                  {activeWebhooks.length > 0 ? "이미 설정됨" : "웹훅 설정"}
-                </>
+                <span
+                  className={`flex items-center gap-1 ${
+                    activeWebhooks.length > 0
+                      ? "text-emerald-600"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  <WebhookIcon className="w-3.5 h-3.5" />
+                  {activeWebhooks.length > 0
+                    ? `웹훅 활성`
+                    : hasWebhooks
+                    ? "웹훅 비활성"
+                    : "웹훅 없음"}
+                </span>
               )}
-            </Button>
+            </div>
+          </div>
+
+          {/* 오른쪽: 액션 버튼들 */}
+          <div className="flex items-center gap-2 shrink-0">
+            {activeWebhooks.length === 0 && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleSetupWebhook}
+                disabled={isProcessing || loadingWebhooks}
+                className="rounded-lg shadow-sm"
+              >
+                {isSettingThisRepo ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                    설정 중
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-1.5" />
+                    웹훅 설정
+                  </>
+                )}
+              </Button>
+            )}
             {hasWebhooks && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleDeleteWebhook}
-                className="text-xs text-red-600 hover:text-red-700"
                 disabled={isProcessing || loadingWebhooks}
+                className="rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
               >
                 {isDeletingThisRepo ? (
-                  <>
-                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                    삭제 중...
-                  </>
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <>
-                    <Trash2 className="w-3 h-3 mr-1" />
-                    웹훅 삭제
-                  </>
+                  <Trash2 className="w-4 h-4" />
                 )}
               </Button>
             )}
-            <div className="flex items-center gap-1 text-primary text-xs">
+            <div className="flex items-center gap-1.5 text-primary pl-2 border-l border-border">
               <FileText className="w-4 h-4" />
-              <span>최신 문서 보기</span>
+              <span className="text-sm font-medium">문서</span>
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </div>
           </div>
         </div>
-      </CardContent>
-      {(setupSuccessThisRepo || deleteSuccessThisRepo) && (
-        <div className="px-6 pb-4">
-          <p className="text-xs text-green-600">
+
+        {/* 상태 메시지 */}
+        {(setupSuccessThisRepo || deleteSuccessThisRepo) && (
+          <div className="mt-3 flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg">
+            <CheckCircle2 className="w-4 h-4" />
             {setupSuccessThisRepo
-              ? "웹훅이 성공적으로 설정되었습니다."
-              : "웹훅이 성공적으로 삭제되었습니다."}
-          </p>
-        </div>
-      )}
-      {(setupErrorThisRepo || deleteErrorThisRepo) && (
-        <div className="px-6 pb-4">
-          <p className="text-xs text-red-600">
-            웹훅 작업 중 오류가 발생했습니다. 다시 시도해주세요.
-          </p>
-        </div>
-      )}
+              ? "웹훅이 성공적으로 설정되었습니다"
+              : "웹훅이 성공적으로 삭제되었습니다"}
+          </div>
+        )}
+        {(setupErrorThisRepo || deleteErrorThisRepo) && (
+          <div className="mt-3 flex items-center gap-2 text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-lg">
+            <XCircle className="w-4 h-4" />
+            웹훅 작업 중 오류가 발생했습니다
+          </div>
+        )}
+      </div>
     </Card>
   );
 }

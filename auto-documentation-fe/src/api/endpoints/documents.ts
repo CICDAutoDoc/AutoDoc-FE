@@ -30,17 +30,17 @@ export const getLatestDocument = async (
 };
 
 /**
- * 문서 내용 및 상태 업데이트
+ * 수정한 문서 저장 (PUT - 전체 덮어쓰기)
  * @param documentId - 문서 ID
- * @param data - 수정할 데이터 (title, content, status 중 원하는 것만)
- * @returns 수정된 문서
+ * @param data - 수정할 데이터 (title, content)
+ * @returns 수정된 문서 (status는 자동으로 'edited'로 변경됨)
  */
 export const updateDocument = async (
   documentId: number,
   data: UpdateDocumentRequest
 ): Promise<UpdateDocumentResponse> => {
   try {
-    const response = await apiClient.patch<UpdateDocumentResponse>(
+    const response = await apiClient.put<UpdateDocumentResponse>(
       `/documents/${documentId}`,
       data
     );

@@ -102,7 +102,6 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
   );
   const [editTitle, setEditTitle] = useState(document.title);
   const [editContent, setEditContent] = useState(document.content);
-  const [editStatus, setEditStatus] = useState(document.status);
 
   const updateDocument = useUpdateDocument();
   const { data: diffData, isLoading: isDiffLoading, error: diffError } = useDocumentDiff(
@@ -113,7 +112,6 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
   useEffect(() => {
     setEditTitle(document.title);
     setEditContent(document.content);
-    setEditStatus(document.status);
   }, [document]);
 
   const formatDate = (dateString: string) => {
@@ -133,29 +131,20 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
       ? repoName.split("/")
       : ["", repoName];
 
-    // 변경된 필드만 전송
-    const changes: { title?: string; content?: string; status?: string } = {};
-
-    if (editTitle !== document.title) {
-      changes.title = editTitle;
-    }
-    if (editContent !== document.content) {
-      changes.content = editContent;
-    }
-    if (editStatus !== document.status) {
-      changes.status = editStatus;
-    }
-
     // 변경사항이 없으면 저장하지 않음
-    if (Object.keys(changes).length === 0) {
+    if (!hasChanges) {
       setViewMode("preview");
       return;
     }
 
+    // PUT 요청으로 title과 content 전체 전송 (status는 자동으로 'edited'로 변경됨)
     updateDocument.mutate(
       {
         documentId: document.id,
-        data: changes,
+        data: {
+          title: editTitle,
+          content: editContent,
+        },
         repoOwner,
         repoName: repoNameOnly,
       },
@@ -170,14 +159,12 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
   const handleCancelEdit = () => {
     setEditTitle(document.title);
     setEditContent(document.content);
-    setEditStatus(document.status);
     setViewMode("preview");
   };
 
   const hasChanges =
     editTitle !== document.title ||
-    editContent !== document.content ||
-    editStatus !== document.status;
+    editContent !== document.content;
 
   return (
     <Card className="w-full">
@@ -217,31 +204,19 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
             {document.commit_sha.substring(0, 7)}
           </Badge>
           <Badge variant="outline">{document.document_type}</Badge>
-          {viewMode === "edit" ? (
-            <select
-              value={editStatus}
-              onChange={(e) => setEditStatus(e.target.value)}
-              className="text-xs px-2 py-1 rounded border bg-background"
-            >
-              <option value="pending">pending</option>
-              <option value="approved">approved</option>
-              <option value="rejected">rejected</option>
-              <option value="edited">edited</option>
-              <option value="reviewed">reviewed</option>
-            </select>
-          ) : (
-            <Badge
-              variant={
-                document.status === "approved"
-                  ? "default"
-                  : document.status === "pending"
-                  ? "secondary"
-                  : "destructive"
-              }
-            >
-              {document.status}
-            </Badge>
-          )}
+          <Badge
+            variant={
+              document.status === "approved"
+                ? "default"
+                : document.status === "pending"
+                ? "secondary"
+                : document.status === "edited"
+                ? "outline"
+                : "destructive"
+            }
+          >
+            {document.status}
+          </Badge>
         </div>
 
         <div className="flex items-center gap-4 text-sm text-muted-foreground mt-3">

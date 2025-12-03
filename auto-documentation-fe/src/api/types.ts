@@ -139,11 +139,10 @@ export interface LatestDocumentResponse {
   updated_at: string;
 }
 
-// 문서 수정 요청 (Partial Update - 원하는 필드만 전송 가능)
+// 문서 수정 요청 (PUT - 전체 덮어쓰기, status는 자동으로 'edited'로 변경됨)
 export interface UpdateDocumentRequest {
-  title?: string;
-  content?: string;
-  status?: string;
+  title: string;
+  content: string;
 }
 
 // 문서 수정 응답

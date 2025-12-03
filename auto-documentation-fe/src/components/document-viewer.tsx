@@ -30,8 +30,13 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import mermaid from "mermaid";
 
-// Mermaid 초기화 플래그
-let mermaidInitialized = false;
+/// Mermaid 초기화
+mermaid.initialize({
+  startOnLoad: false,
+  theme: "default",
+  securityLevel: "loose",
+  fontFamily: "inherit",
+});
 
 // Mermaid 다이어그램 컴포넌트
 function MermaidDiagram({ chart }: { chart: string }) {
@@ -44,52 +49,24 @@ function MermaidDiagram({ chart }: { chart: string }) {
       if (!chart.trim()) return;
 
       try {
-        // Mermaid 초기화 (한 번만)
-        if (!mermaidInitialized) {
-          mermaid.initialize({
-            startOnLoad: false,
-            theme: "default",
-            securityLevel: "loose",
-            fontFamily: "inherit",
-            suppressErrorRendering: true, // 에러 DOM 렌더링 억제
-          });
-          mermaidInitialized = true;
-        }
-
         const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
         const { svg } = await mermaid.render(id, chart);
         setSvg(svg);
         setError(null);
-
-        // Mermaid가 생성하는 에러 요소 제거
-        const errorElements = document.querySelectorAll("#d" + id);
-        errorElements.forEach((el) => el.remove());
       } catch (err) {
         console.error("Mermaid rendering error:", err);
         setError("다이어그램을 렌더링할 수 없습니다.");
-
-        // 에러 발생 시에도 Mermaid가 생성한 요소들 정리
-        const mermaidErrors = document.querySelectorAll('[id^="dmermaid-"]');
-        mermaidErrors.forEach((el) => el.remove());
       }
     };
 
     renderDiagram();
-
-    // 클린업: 컴포넌트 언마운트 시 Mermaid 관련 요소 제거
-    return () => {
-      const mermaidElements = document.querySelectorAll('[id^="dmermaid-"]');
-      mermaidElements.forEach((el) => el.remove());
-    };
   }, [chart]);
 
   if (error) {
     return (
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 my-4">
-        <p className="text-amber-700 text-sm font-medium mb-2">
-          다이어그램을 렌더링할 수 없습니다
-        </p>
-        <pre className="text-xs bg-muted p-3 rounded overflow-x-auto font-mono text-muted-foreground">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 my-4">
+        <p className="text-red-600 text-sm">{error}</p>
+        <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-x-auto">
           {chart}
         </pre>
       </div>
@@ -112,7 +89,6 @@ function MermaidDiagram({ chart }: { chart: string }) {
     />
   );
 }
-
 interface DocumentViewerProps {
   document: Document;
   onClose: () => void;
@@ -424,10 +400,10 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
                 },
                 pre: ({ children }) => {
                   // Mermaid인 경우 pre 래퍼 제거
-                  const child = children as React.ReactElement<{
-                    className?: string;
-                  }>;
-                  if (child?.props?.className?.includes("language-mermaid")) {
+                  const child = children as React.ReactElement<{ className?: string }>;
+                  if (
+                    child?.props?.className?.includes("language-mermaid")
+                  ) {
                     return <>{children}</>;
                   }
                   return (

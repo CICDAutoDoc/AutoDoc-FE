@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Document } from "@/api/types";
-import { useUpdateDocument } from "@/hooks/useDocument";
+import { useUpdateDocument, useDocumentDiff } from "@/hooks/useDocument";
+import { DiffViewer } from "@/components/diff-viewer";
 import {
   Card,
   CardContent,
@@ -25,6 +26,7 @@ import {
   Loader2,
   CheckCircle,
   XCircle,
+  GitCompare,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -95,7 +97,7 @@ interface DocumentViewerProps {
 }
 
 export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
-  const [viewMode, setViewMode] = useState<"preview" | "source" | "edit">(
+  const [viewMode, setViewMode] = useState<"preview" | "source" | "edit" | "diff">(
     "preview"
   );
   const [editTitle, setEditTitle] = useState(document.title);
@@ -103,6 +105,9 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
   const [editStatus, setEditStatus] = useState(document.status);
 
   const updateDocument = useUpdateDocument();
+  const { data: diffData, isLoading: isDiffLoading, error: diffError } = useDocumentDiff(
+    viewMode === "diff" ? document.id : null
+  );
 
   // document가 변경되면 편집 상태 초기화
   useEffect(() => {
@@ -282,6 +287,16 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
               <Edit3 className="w-3 h-3 mr-1" />
               편집
             </Button>
+            <Button
+              variant={viewMode === "diff" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("diff")}
+              className="text-xs"
+              disabled={viewMode === "edit"}
+            >
+              <GitCompare className="w-3 h-3 mr-1" />
+              변경내역
+            </Button>
           </div>
 
           {viewMode === "edit" && (
@@ -447,6 +462,32 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
             >
               {document.content}
             </ReactMarkdown>
+          </div>
+        ) : viewMode === "diff" ? (
+          <div>
+            {isDiffLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-muted-foreground">변경 내역을 불러오는 중...</span>
+              </div>
+            ) : diffError ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <p className="text-amber-700 text-sm">
+                  변경 내역을 불러올 수 없습니다. 이전 버전이 없거나 처음 생성된 문서일 수 있습니다.
+                </p>
+              </div>
+            ) : diffData ? (
+              <DiffViewer
+                diffLines={diffData.diff_lines}
+                lastUpdated={diffData.last_updated}
+                oldText={diffData.old_content}
+                newText={diffData.new_content}
+              />
+            ) : (
+              <div className="bg-muted rounded-lg p-4 text-center text-muted-foreground">
+                변경 내역이 없습니다.
+              </div>
+            )}
           </div>
         ) : (
           <div className="whitespace-pre-wrap bg-muted p-4 rounded-md font-mono text-sm overflow-x-auto">

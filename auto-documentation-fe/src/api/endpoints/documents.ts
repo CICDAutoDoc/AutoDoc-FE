@@ -4,6 +4,7 @@ import {
   LatestDocumentResponse,
   UpdateDocumentRequest,
   UpdateDocumentResponse,
+  DocumentDiffResponse,
 } from '../types';
 
 /**
@@ -51,9 +52,30 @@ export const updateDocument = async (
   }
 };
 
+/**
+ * 문서 변경 내역 조회 (Diff)
+ * @param documentId - 문서 ID
+ * @returns 문서 변경 내역
+ */
+export const getDocumentDiff = async (
+  documentId: number
+): Promise<DocumentDiffResponse> => {
+  try {
+    const response = await apiClient.get<DocumentDiffResponse>(
+      `/documents/${documentId}/diff`
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch document diff:', error);
+    throw error;
+  }
+};
+
 export const documentsApi = {
   getLatestDocument,
   updateDocument,
+  getDocumentDiff,
 };
 
 export default documentsApi;

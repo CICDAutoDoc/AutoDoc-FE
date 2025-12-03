@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Document, UpdateDocumentRequest } from '@/api/types';
-import { getLatestDocument, updateDocument } from '@/api/endpoints/documents';
+import { Document, UpdateDocumentRequest, DocumentDiffResponse } from '@/api/types';
+import { getLatestDocument, updateDocument, getDocumentDiff } from '@/api/endpoints/documents';
 
 export const useLatestDocument = (repoOwner: string, repoName: string) => {
   return useQuery<Document, Error>({
@@ -35,7 +35,20 @@ export const useUpdateDocument = () => {
       queryClient.invalidateQueries({
         queryKey: ['document'],
       });
+      // Diff 쿼리도 무효화
+      queryClient.invalidateQueries({
+        queryKey: ['document', 'diff'],
+      });
     },
+  });
+};
+
+export const useDocumentDiff = (documentId: number | null) => {
+  return useQuery<DocumentDiffResponse, Error>({
+    queryKey: ['document', 'diff', documentId],
+    queryFn: () => getDocumentDiff(documentId!),
+    enabled: !!documentId,
+    retry: false,
   });
 };
 

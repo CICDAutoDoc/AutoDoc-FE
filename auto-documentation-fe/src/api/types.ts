@@ -160,6 +160,14 @@ export interface UpdateDocumentResponse {
   updated_at: string;
 }
 
+// 문서 Diff 응답
+export interface DocumentDiffResponse {
+  old_content: string;
+  new_content: string;
+  last_updated: string;
+  diff_lines: string[];
+}
+
 // API Error types
 export interface ApiError {
   message: string;

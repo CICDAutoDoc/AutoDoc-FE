@@ -1,7 +1,7 @@
 "use client";
 
-import { UserRepository } from "@/api/types";
-import { useWebhooks, useSetupWebhook, useDeleteWebhook } from "@/hooks/useWebhooks";
+import { UserRepository, Webhook } from "@/api/types";
+import { useSetupWebhook, useDeleteWebhook } from "@/hooks/useWebhooks";
 import {
   Card,
   CardContent,
@@ -25,22 +25,23 @@ import {
 interface RepositoryCardProps {
   repository: UserRepository;
   userId: string;
+  webhooks?: Webhook[];
+  loadingWebhooks?: boolean;
   onClick: () => void;
 }
 
-export function RepositoryCard({ repository, userId, onClick }: RepositoryCardProps) {
-  const webhookUrl = "http://15.165.120.222/github/webhook";
+export function RepositoryCard({
+  repository,
+  userId,
+  webhooks: repoWebhooks = [],
+  loadingWebhooks = false,
+  onClick,
+}: RepositoryCardProps) {
+  const webhookUrl = "http://15.165.120.222";
   const [owner, name] = repository.full_name.split("/");
 
   const setupWebhook = useSetupWebhook();
   const deleteWebhook = useDeleteWebhook();
-
-  // 이 레포의 웹훅만 조회
-  const { data: repoWebhooks = [], isLoading: loadingWebhooks } = useWebhooks(
-    owner,
-    name,
-    userId
-  );
 
   const activeWebhooks = repoWebhooks.filter((w) => w.active);
   const hasWebhooks = repoWebhooks.length > 0;

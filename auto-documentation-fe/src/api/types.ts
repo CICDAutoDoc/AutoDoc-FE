@@ -170,6 +170,27 @@ export interface LatestDocumentResponse {
   updated_at: string;
 }
 
+// 문서 수정 요청 (Partial Update - 원하는 필드만 전송 가능)
+export interface UpdateDocumentRequest {
+  title?: string;
+  content?: string;
+  status?: string;
+}
+
+// 문서 수정 응답
+export interface UpdateDocumentResponse {
+  id: number;
+  title: string;
+  content: string;
+  summary: string;
+  status: string;
+  document_type: string;
+  commit_sha: string;
+  repository_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // API Error types
 export interface ApiError {
   message: string;

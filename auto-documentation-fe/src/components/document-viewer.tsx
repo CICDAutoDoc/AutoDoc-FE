@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Document } from "@/api/types";
+import { useUpdateDocument } from "@/hooks/useDocument";
 import {
   Card,
   CardContent,
@@ -11,7 +12,20 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Calendar, GitCommit, X, Code, Eye } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  FileText,
+  Calendar,
+  GitCommit,
+  X,
+  Code,
+  Eye,
+  Edit3,
+  Save,
+  Loader2,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import mermaid from "mermaid";
@@ -82,7 +96,21 @@ interface DocumentViewerProps {
 }
 
 export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
-  const [viewMode, setViewMode] = useState<"preview" | "source">("preview");
+  const [viewMode, setViewMode] = useState<"preview" | "source" | "edit">(
+    "preview"
+  );
+  const [editTitle, setEditTitle] = useState(document.title);
+  const [editContent, setEditContent] = useState(document.content);
+  const [editStatus, setEditStatus] = useState(document.status);
+
+  const updateDocument = useUpdateDocument();
+
+  // document가 변경되면 편집 상태 초기화
+  useEffect(() => {
+    setEditTitle(document.title);
+    setEditContent(document.content);
+    setEditStatus(document.status);
+  }, [document]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -95,6 +123,58 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
     });
   };
 
+  const handleSave = () => {
+    const repoName = document.repository_name;
+    const [repoOwner, repoNameOnly] = repoName.includes("/")
+      ? repoName.split("/")
+      : ["", repoName];
+
+    // 변경된 필드만 전송
+    const changes: { title?: string; content?: string; status?: string } = {};
+
+    if (editTitle !== document.title) {
+      changes.title = editTitle;
+    }
+    if (editContent !== document.content) {
+      changes.content = editContent;
+    }
+    if (editStatus !== document.status) {
+      changes.status = editStatus;
+    }
+
+    // 변경사항이 없으면 저장하지 않음
+    if (Object.keys(changes).length === 0) {
+      setViewMode("preview");
+      return;
+    }
+
+    updateDocument.mutate(
+      {
+        documentId: document.id,
+        data: changes,
+        repoOwner,
+        repoName: repoNameOnly,
+      },
+      {
+        onSuccess: () => {
+          setViewMode("preview");
+        },
+      }
+    );
+  };
+
+  const handleCancelEdit = () => {
+    setEditTitle(document.title);
+    setEditContent(document.content);
+    setEditStatus(document.status);
+    setViewMode("preview");
+  };
+
+  const hasChanges =
+    editTitle !== document.title ||
+    editContent !== document.content ||
+    editStatus !== document.status;
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -102,7 +182,16 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
               <FileText className="w-5 h-5 text-primary" />
-              <CardTitle className="text-2xl">{document.title}</CardTitle>
+              {viewMode === "edit" ? (
+                <Input
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="text-2xl font-bold h-auto py-1"
+                  placeholder="문서 제목"
+                />
+              ) : (
+                <CardTitle className="text-2xl">{document.title}</CardTitle>
+              )}
             </div>
             <CardDescription className="text-base">
               {document.summary}
@@ -124,17 +213,31 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
             {document.commit_sha.substring(0, 7)}
           </Badge>
           <Badge variant="outline">{document.document_type}</Badge>
-          <Badge
-            variant={
-              document.status === "approved"
-                ? "default"
-                : document.status === "pending"
-                ? "secondary"
-                : "destructive"
-            }
-          >
-            {document.status}
-          </Badge>
+          {viewMode === "edit" ? (
+            <select
+              value={editStatus}
+              onChange={(e) => setEditStatus(e.target.value)}
+              className="text-xs px-2 py-1 rounded border bg-background"
+            >
+              <option value="pending">pending</option>
+              <option value="approved">approved</option>
+              <option value="rejected">rejected</option>
+              <option value="edited">edited</option>
+              <option value="reviewed">reviewed</option>
+            </select>
+          ) : (
+            <Badge
+              variant={
+                document.status === "approved"
+                  ? "default"
+                  : document.status === "pending"
+                  ? "secondary"
+                  : "destructive"
+              }
+            >
+              {document.status}
+            </Badge>
+          )}
         </div>
 
         <div className="flex items-center gap-4 text-sm text-muted-foreground mt-3">
@@ -148,31 +251,96 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
           </div>
         </div>
 
-        {/* 뷰 모드 토글 */}
-        <div className="flex gap-1 mt-4 p-1 bg-muted rounded-lg w-fit">
-          <Button
-            variant={viewMode === "preview" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("preview")}
-            className="text-xs"
-          >
-            <Eye className="w-3 h-3 mr-1" />
-            미리보기
-          </Button>
-          <Button
-            variant={viewMode === "source" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("source")}
-            className="text-xs"
-          >
-            <Code className="w-3 h-3 mr-1" />
-            원본
-          </Button>
+        {/* 뷰 모드 토글 및 액션 버튼 */}
+        <div className="flex items-center justify-between mt-4">
+          <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit">
+            <Button
+              variant={viewMode === "preview" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("preview")}
+              className="text-xs"
+              disabled={viewMode === "edit"}
+            >
+              <Eye className="w-3 h-3 mr-1" />
+              미리보기
+            </Button>
+            <Button
+              variant={viewMode === "source" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("source")}
+              className="text-xs"
+              disabled={viewMode === "edit"}
+            >
+              <Code className="w-3 h-3 mr-1" />
+              원본
+            </Button>
+            <Button
+              variant={viewMode === "edit" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("edit")}
+              className="text-xs"
+            >
+              <Edit3 className="w-3 h-3 mr-1" />
+              편집
+            </Button>
+          </div>
+
+          {viewMode === "edit" && (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCancelEdit}
+                disabled={updateDocument.isPending}
+              >
+                <XCircle className="w-3 h-3 mr-1" />
+                취소
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={updateDocument.isPending || !hasChanges}
+              >
+                {updateDocument.isPending ? (
+                  <>
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                    저장 중...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3 h-3 mr-1" />
+                    저장
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
         </div>
+
+        {/* 성공/에러 메시지 */}
+        {updateDocument.isSuccess && (
+          <div className="flex items-center gap-2 mt-3 text-green-600 text-sm">
+            <CheckCircle className="w-4 h-4" />
+            <span>문서가 성공적으로 저장되었습니다.</span>
+          </div>
+        )}
+        {updateDocument.isError && (
+          <div className="flex items-center gap-2 mt-3 text-red-600 text-sm">
+            <XCircle className="w-4 h-4" />
+            <span>문서 저장에 실패했습니다. 다시 시도해주세요.</span>
+          </div>
+        )}
       </CardHeader>
 
       <CardContent>
-        {viewMode === "preview" ? (
+        {viewMode === "edit" ? (
+          <textarea
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            className="w-full min-h-[400px] p-4 bg-muted rounded-md font-mono text-sm resize-y border-0 focus:outline-none focus:ring-2 focus:ring-primary"
+            placeholder="마크다운 내용을 입력하세요..."
+          />
+        ) : viewMode === "preview" ? (
           <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-muted prose-pre:text-foreground">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
@@ -233,10 +401,10 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
                 },
                 pre: ({ children }) => {
                   // Mermaid인 경우 pre 래퍼 제거
-                  const child = children as React.ReactElement<{ className?: string }>;
-                  if (
-                    child?.props?.className?.includes("language-mermaid")
-                  ) {
+                  const child = children as React.ReactElement<{
+                    className?: string;
+                  }>;
+                  if (child?.props?.className?.includes("language-mermaid")) {
                     return <>{children}</>;
                   }
                   return (

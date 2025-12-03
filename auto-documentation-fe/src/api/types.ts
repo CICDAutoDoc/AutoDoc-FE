@@ -112,37 +112,6 @@ export interface WebhookEvent {
   [key: string]: any; // 다양한 이벤트 타입을 수용
 }
 
-// Documentation types (기존 mock 데이터와 호환)
-export interface Documentation {
-  summary: string;
-  details: string;
-  changes: Array<{
-    type: "added" | "modified" | "removed";
-    file: string;
-    description: string;
-  }>;
-}
-
-export interface PendingDocumentation {
-  id: string;
-  repository: {
-    owner: string;
-    name: string;
-    url: string;
-  };
-  commit: {
-    sha: string;
-    message: string;
-    author: string;
-    date: string;
-    url: string;
-  };
-  documentation: Documentation;
-  status: "pending" | "approved" | "rejected";
-  createdAt: string;
-  diff?: string;
-}
-
 // Document types
 export interface Document {
   id: number;

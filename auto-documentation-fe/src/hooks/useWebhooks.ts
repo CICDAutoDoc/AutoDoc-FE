@@ -50,10 +50,42 @@ export const useSetupWebhook = () => {
   return useMutation({
     mutationFn: ({ userId, data }: { userId: string; data: SetupRepositoryRequest }) =>
       setupRepository(userId, data),
-    onSuccess: (_, variables) => {
-      // 성공 후 해당 레포지토리의 웹훅 쿼리 무효화
+    onSuccess: (response, variables) => {
+      const fullName = `${variables.data.repo_owner}/${variables.data.repo_name}`;
+
+      // 응답에서 웹훅 정보를 추출하여 즉시 캐시 업데이트
+      const newWebhook: Webhook = {
+        id: response.webhook_id || Date.now(),
+        name: 'web',
+        active: true,
+        events: ['push'],
+        config: {
+          url: variables.data.webhook_url,
+          content_type: 'json',
+        },
+      };
+
+      // 여러 레포지토리 웹훅 목록 캐시 즉시 업데이트
+      queryClient.setQueriesData<Record<string, Webhook[]>>(
+        { queryKey: ['webhooks', 'multiple'] },
+        (oldData) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            [fullName]: [...(oldData[fullName] || []), newWebhook],
+          };
+        }
+      );
+
+      // 개별 레포지토리 웹훅 쿼리도 업데이트
+      queryClient.setQueryData<Webhook[]>(
+        ['webhooks', variables.data.repo_owner, variables.data.repo_name, variables.userId],
+        (oldData) => [...(oldData || []), newWebhook]
+      );
+
+      // 백그라운드에서 실제 데이터로 동기화
       queryClient.invalidateQueries({
-        queryKey: ['webhooks', variables.data.repo_owner, variables.data.repo_name, variables.userId],
+        queryKey: ['webhooks'],
       });
     },
   });
@@ -76,9 +108,31 @@ export const useDeleteWebhook = () => {
       userId: string;
     }) => deleteWebhook(repoOwner, repoName, webhookId, userId),
     onSuccess: (_, variables) => {
-      // 성공 후 해당 레포지토리의 웹훅 쿼리 무효화
+      const fullName = `${variables.repoOwner}/${variables.repoName}`;
+
+      // 여러 레포지토리 웹훅 목록 캐시에서 해당 웹훅 즉시 제거
+      queryClient.setQueriesData<Record<string, Webhook[]>>(
+        { queryKey: ['webhooks', 'multiple'] },
+        (oldData) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            [fullName]: (oldData[fullName] || []).filter(
+              (w) => w.id !== variables.webhookId
+            ),
+          };
+        }
+      );
+
+      // 개별 레포지토리 웹훅 쿼리에서도 제거
+      queryClient.setQueryData<Webhook[]>(
+        ['webhooks', variables.repoOwner, variables.repoName, variables.userId],
+        (oldData) => (oldData || []).filter((w) => w.id !== variables.webhookId)
+      );
+
+      // 백그라운드에서 실제 데이터로 동기화
       queryClient.invalidateQueries({
-        queryKey: ['webhooks', variables.repoOwner, variables.repoName, variables.userId],
+        queryKey: ['webhooks'],
       });
     },
   });

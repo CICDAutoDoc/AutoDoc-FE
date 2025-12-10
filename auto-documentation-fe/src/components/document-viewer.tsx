@@ -38,6 +38,7 @@ mermaid.initialize({
   theme: "default",
   securityLevel: "loose",
   fontFamily: "inherit",
+  suppressErrorRendering: true, // 에러 발생 시 DOM에 에러 요소 추가 방지
 });
 
 // Mermaid 다이어그램 컴포넌트
@@ -64,15 +65,9 @@ function MermaidDiagram({ chart }: { chart: string }) {
     renderDiagram();
   }, [chart]);
 
+  // 에러가 발생하면 UI에 표시하지 않음 (콘솔에만 로그)
   if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 my-4">
-        <p className="text-red-600 text-sm">{error}</p>
-        <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-x-auto">
-          {chart}
-        </pre>
-      </div>
-    );
+    return null;
   }
 
   if (!svg) {
@@ -209,10 +204,10 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
               document.status === "approved"
                 ? "default"
                 : document.status === "pending"
-                ? "secondary"
-                : document.status === "edited"
-                ? "outline"
-                : "destructive"
+                  ? "secondary"
+                  : document.status === "edited"
+                    ? "outline"
+                    : "destructive"
             }
           >
             {document.status}

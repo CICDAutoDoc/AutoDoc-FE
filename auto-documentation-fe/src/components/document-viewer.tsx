@@ -285,7 +285,15 @@ export function DocumentViewer({ document, onClose, userId }: DocumentViewerProp
                       : "destructive"
               }
             >
-              {document.status}
+              {document.status === "generated"
+                ? "AI 생성"
+                : document.status === "edited"
+                  ? "직접 수정함"
+                  : document.status === "reviewed"
+                    ? "검토됨"
+                    : document.status === "failed"
+                      ? "실패"
+                      : document.status}
             </Badge>
           </div>
 

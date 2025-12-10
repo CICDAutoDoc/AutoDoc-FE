@@ -25,12 +25,12 @@ const statusConfig: Record<
     { label: string; color: string; icon: React.ReactNode }
 > = {
     generated: {
-        label: "생성됨",
+        label: "AI 생성",
         color: "bg-blue-50 text-blue-600 border-blue-200",
         icon: <CheckCircle2 className="w-3 h-3" />,
     },
     edited: {
-        label: "수정됨",
+        label: "직접 수정함",
         color: "bg-amber-50 text-amber-600 border-amber-200",
         icon: <Edit3 className="w-3 h-3" />,
     },

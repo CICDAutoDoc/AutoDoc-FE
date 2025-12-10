@@ -164,9 +164,15 @@ export function RepositoryList({ userId }: RepositoryListProps) {
       reviewed: "default",
       failed: "destructive",
     };
+    const labels: Record<string, string> = {
+      generated: "AI 생성",
+      edited: "직접 수정함",
+      reviewed: "검토됨",
+      failed: "실패",
+    };
     return (
       <Badge variant={variants[status] || "secondary"} className="text-xs">
-        {status}
+        {labels[status] || status}
       </Badge>
     );
   };

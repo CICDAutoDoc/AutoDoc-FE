@@ -185,6 +185,22 @@ export interface DocumentListItem {
   created_at: string;
 }
 
+// Owner별 최신 문서 조회 파라미터
+export interface GetOwnerDocumentsParams {
+  repoOwner: string;
+  limit?: number;
+  offset?: number;
+}
+
+// Owner별 최신 문서 아이템
+export interface OwnerDocumentItem {
+  id: number;
+  title: string;
+  repository_name: string;
+  status: string;
+  created_at: string;
+}
+
 // GitHub README 발행 파라미터
 export interface PublishDocumentParams {
   documentId: number;

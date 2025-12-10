@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Document, DocumentListItem, GetDocumentsParams, UpdateDocumentRequest, DocumentDiffResponse } from '@/api/types';
-import { getDocuments, getDocument, getLatestDocument, updateDocument, getDocumentDiff, publishDocument } from '@/api/endpoints/documents';
+import { Document, DocumentListItem, GetDocumentsParams, UpdateDocumentRequest, DocumentDiffResponse, OwnerDocumentItem, GetOwnerDocumentsParams } from '@/api/types';
+import { getDocuments, getDocument, getLatestDocument, updateDocument, getDocumentDiff, publishDocument, getOwnerDocuments } from '@/api/endpoints/documents';
 
 // 문서 목록 조회 Hook
 export const useDocuments = (params: GetDocumentsParams = {}) => {
@@ -89,6 +89,16 @@ export const usePublishDocument = () => {
       branch?: string;
       message?: string;
     }) => publishDocument(documentId, userId, branch, message),
+  });
+};
+
+// Owner별 최신 문서 조회 Hook
+export const useOwnerDocuments = (repoOwner: string, limit?: number, offset?: number) => {
+  return useQuery<OwnerDocumentItem[], Error>({
+    queryKey: ['documents', 'owner', repoOwner, { limit, offset }],
+    queryFn: () => getOwnerDocuments({ repoOwner, limit, offset }),
+    enabled: !!repoOwner,
+    retry: false,
   });
 };
 

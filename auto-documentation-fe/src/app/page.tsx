@@ -8,8 +8,10 @@ import {
   LogOut,
   Loader2,
   Sparkles,
+  BookOpen,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import Link from "next/link";
 
 export default function Home() {
   const { user, loading: authLoading, login, logout } = useAuth();
@@ -85,6 +87,12 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              <Link href="/documents">
+                <Button variant="ghost" size="sm">
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  최근 문서
+                </Button>
+              </Link>
               <div className="flex items-center gap-3 bg-muted/50 rounded-full pl-4 pr-2 py-1.5">
                 <p className="text-sm font-medium">
                   {user.github_username}

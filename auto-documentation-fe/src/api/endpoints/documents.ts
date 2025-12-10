@@ -3,6 +3,8 @@ import {
   Document,
   DocumentListItem,
   GetDocumentsParams,
+  GetOwnerDocumentsParams,
+  OwnerDocumentItem,
   LatestDocumentResponse,
   UpdateDocumentRequest,
   UpdateDocumentResponse,
@@ -153,10 +155,41 @@ export const publishDocument = async (
   }
 };
 
+/**
+ * 사용자별 모든 최신 문서 조회
+ * @param params - 조회 파라미터 (repoOwner, limit, offset)
+ * @returns 최신 문서 목록
+ */
+export const getOwnerDocuments = async (
+  params: GetOwnerDocumentsParams
+): Promise<OwnerDocumentItem[]> => {
+  try {
+    const queryParams = new URLSearchParams();
+
+    if (params.limit !== undefined) {
+      queryParams.set('limit', params.limit.toString());
+    }
+    if (params.offset !== undefined) {
+      queryParams.set('offset', params.offset.toString());
+    }
+
+    const queryString = queryParams.toString();
+    const url = queryString
+      ? `/documents/owner/${params.repoOwner}?${queryString}`
+      : `/documents/owner/${params.repoOwner}`;
+
+    const response = await apiClient.get<OwnerDocumentItem[]>(url);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const documentsApi = {
   getDocuments,
   getDocument,
   getLatestDocument,
+  getOwnerDocuments,
   updateDocument,
   getDocumentDiff,
   publishDocument,

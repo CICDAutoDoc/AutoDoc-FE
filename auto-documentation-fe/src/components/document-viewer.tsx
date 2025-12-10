@@ -47,6 +47,17 @@ mermaid.initialize({
   securityLevel: "loose",
   fontFamily: "inherit",
   suppressErrorRendering: true, // 에러 발생 시 DOM에 에러 요소 추가 방지
+  flowchart: {
+    curve: "basis", // 곡선 화살표 (basis, linear, cardinal 등)
+    nodeSpacing: 50, // 노드 간 가로 간격
+    rankSpacing: 50, // 노드 간 세로 간격
+    padding: 15, // 노드 내부 패딩
+    htmlLabels: true, // HTML 레이블 사용
+    useMaxWidth: true, // 최대 너비 사용
+  },
+  themeVariables: {
+    fontSize: "14px",
+  },
 });
 
 // Mermaid 다이어그램 컴포넌트

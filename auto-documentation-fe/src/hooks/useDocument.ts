@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Document, DocumentListItem, GetDocumentsParams, UpdateDocumentRequest, DocumentDiffResponse } from '@/api/types';
-import { getDocuments, getDocument, getLatestDocument, updateDocument, getDocumentDiff } from '@/api/endpoints/documents';
+import { getDocuments, getDocument, getLatestDocument, updateDocument, getDocumentDiff, publishDocument } from '@/api/endpoints/documents';
 
 // 문서 목록 조회 Hook
 export const useDocuments = (params: GetDocumentsParams = {}) => {
@@ -72,6 +72,23 @@ export const useDocumentDiff = (documentId: number | null) => {
     queryFn: () => getDocumentDiff(documentId!),
     enabled: !!documentId,
     retry: false,
+  });
+};
+
+// GitHub README 발행 Hook
+export const usePublishDocument = () => {
+  return useMutation({
+    mutationFn: ({
+      documentId,
+      userId,
+      branch,
+      message,
+    }: {
+      documentId: number;
+      userId: number;
+      branch?: string;
+      message?: string;
+    }) => publishDocument(documentId, userId, branch, message),
   });
 };
 

@@ -185,6 +185,21 @@ export interface DocumentListItem {
   created_at: string;
 }
 
+// GitHub README 발행 파라미터
+export interface PublishDocumentParams {
+  documentId: number;
+  userId: number;
+  branch?: string;
+  message?: string;
+}
+
+// GitHub README 발행 응답
+export interface PublishDocumentResponse {
+  success: boolean;
+  message: string;
+  commit_sha: string;
+}
+
 // API Error types
 export interface ApiError {
   message: string;

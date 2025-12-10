@@ -7,6 +7,7 @@ import {
   UpdateDocumentRequest,
   UpdateDocumentResponse,
   DocumentDiffResponse,
+  PublishDocumentResponse,
 } from '../types';
 
 /**
@@ -122,12 +123,43 @@ export const getDocumentDiff = async (
   }
 };
 
+/**
+ * GitHub README로 발행
+ * @param documentId - 문서 ID
+ * @param userId - 사용자 ID
+ * @param branch - 브랜치 (기본값: main)
+ * @param message - 커밋 메시지
+ * @returns 발행 결과
+ */
+export const publishDocument = async (
+  documentId: number,
+  userId: number,
+  branch: string = 'main',
+  message: string = 'Docs: Update README.md by AutoDoc'
+): Promise<PublishDocumentResponse> => {
+  try {
+    const queryParams = new URLSearchParams();
+    queryParams.set('user_id', userId.toString());
+    queryParams.set('branch', branch);
+    queryParams.set('message', message);
+
+    const response = await apiClient.post<PublishDocumentResponse>(
+      `/documents/${documentId}/publish?${queryParams.toString()}`
+    );
+
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const documentsApi = {
   getDocuments,
   getDocument,
   getLatestDocument,
   updateDocument,
   getDocumentDiff,
+  publishDocument,
 };
 
 export default documentsApi;

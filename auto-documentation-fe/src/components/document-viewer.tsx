@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Document } from "@/api/types";
-import { useUpdateDocument, useDocumentDiff } from "@/hooks/useDocument";
+import { useUpdateDocument, useDocumentDiff, usePublishDocument } from "@/hooks/useDocument";
 import { DiffViewer } from "@/components/diff-viewer";
 import {
   Card,
@@ -34,6 +34,7 @@ import {
   CheckCircle,
   XCircle,
   GitCompare,
+  Upload,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -96,16 +97,21 @@ function MermaidDiagram({ chart }: { chart: string }) {
 interface DocumentViewerProps {
   document: Document;
   onClose: () => void;
+  userId?: string;
 }
 
-export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
+export function DocumentViewer({ document, onClose, userId }: DocumentViewerProps) {
   const [viewMode, setViewMode] = useState<"diff" | "preview" | "edit">("diff");
   const [editTitle, setEditTitle] = useState(document.title);
   const [editContent, setEditContent] = useState(document.content);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [pendingMode, setPendingMode] = useState<"diff" | "preview" | "edit" | null>(null);
+  const [showPublishDialog, setShowPublishDialog] = useState(false);
+  const [publishBranch, setPublishBranch] = useState("main");
+  const [publishMessage, setPublishMessage] = useState("Docs: Update README.md by AutoDoc");
 
   const updateDocument = useUpdateDocument();
+  const publishDocument = usePublishDocument();
   const { data: diffData, isLoading: isDiffLoading, error: diffError } = useDocumentDiff(
     document.id
   );
@@ -198,6 +204,24 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
   const handleDialogCancel = () => {
     setShowSaveDialog(false);
     setPendingMode(null);
+  };
+
+  const handlePublish = () => {
+    if (!userId) return;
+
+    publishDocument.mutate(
+      {
+        documentId: document.id,
+        userId: parseInt(userId, 10),
+        branch: publishBranch,
+        message: publishMessage,
+      },
+      {
+        onSuccess: () => {
+          setShowPublishDialog(false);
+        },
+      }
+    );
   };
 
   return (
@@ -297,36 +321,49 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
               </Button>
             </div>
 
-            {viewMode === "edit" && (
-              <div className="flex gap-2">
+            <div className="flex gap-2">
+              {userId && viewMode !== "edit" && (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleCancelEdit}
-                  disabled={updateDocument.isPending}
+                  onClick={() => setShowPublishDialog(true)}
+                  disabled={publishDocument.isPending}
                 >
-                  <XCircle className="w-3 h-3 mr-1" />
-                  취소
+                  <Upload className="w-3 h-3 mr-1" />
+                  README 발행
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={() => handleSave()}
-                  disabled={updateDocument.isPending || !hasChanges}
-                >
-                  {updateDocument.isPending ? (
-                    <>
-                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                      저장 중...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-3 h-3 mr-1" />
-                      저장
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
+              )}
+              {viewMode === "edit" && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancelEdit}
+                    disabled={updateDocument.isPending}
+                  >
+                    <XCircle className="w-3 h-3 mr-1" />
+                    취소
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleSave()}
+                    disabled={updateDocument.isPending || !hasChanges}
+                  >
+                    {updateDocument.isPending ? (
+                      <>
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        저장 중...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-3 h-3 mr-1" />
+                        저장
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
           {/* 성공/에러 메시지 */}
@@ -340,6 +377,18 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
             <div className="flex items-center gap-2 mt-3 text-red-600 text-sm">
               <XCircle className="w-4 h-4" />
               <span>문서 저장에 실패했습니다. 다시 시도해주세요.</span>
+            </div>
+          )}
+          {publishDocument.isSuccess && (
+            <div className="flex items-center gap-2 mt-3 text-green-600 text-sm">
+              <CheckCircle className="w-4 h-4" />
+              <span>GitHub README로 성공적으로 발행되었습니다.</span>
+            </div>
+          )}
+          {publishDocument.isError && (
+            <div className="flex items-center gap-2 mt-3 text-red-600 text-sm">
+              <XCircle className="w-4 h-4" />
+              <span>README 발행에 실패했습니다. 다시 시도해주세요.</span>
             </div>
           )}
         </CardHeader>
@@ -531,6 +580,61 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
                 )}
               </Button>
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 발행 다이얼로그 */}
+      <Dialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>GitHub README로 발행</DialogTitle>
+            <DialogDescription>
+              이 문서를 GitHub 저장소의 README.md 파일로 발행합니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">브랜치</label>
+              <Input
+                value={publishBranch}
+                onChange={(e) => setPublishBranch(e.target.value)}
+                placeholder="main"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">커밋 메시지</label>
+              <Input
+                value={publishMessage}
+                onChange={(e) => setPublishMessage(e.target.value)}
+                placeholder="Docs: Update README.md by AutoDoc"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setShowPublishDialog(false)}
+              disabled={publishDocument.isPending}
+            >
+              취소
+            </Button>
+            <Button
+              onClick={handlePublish}
+              disabled={publishDocument.isPending}
+            >
+              {publishDocument.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  발행 중...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  발행
+                </>
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

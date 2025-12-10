@@ -236,6 +236,7 @@ export function RepositoryList({ userId }: RepositoryListProps) {
         <DocumentViewer
           document={selectedDocument}
           onClose={handleBackToDocList}
+          userId={userId}
         />
       </div>
     );
@@ -367,8 +368,8 @@ export function RepositoryList({ userId }: RepositoryListProps) {
           variant={activeTab === "registered" ? "default" : "ghost"}
           onClick={() => setActiveTab("registered")}
           className={`rounded-full gap-2 transition-all ${activeTab === "registered"
-              ? "shadow-md shadow-primary/20"
-              : "hover:bg-muted"
+            ? "shadow-md shadow-primary/20"
+            : "hover:bg-muted"
             }`}
         >
           {activeTab === "registered" ? (
@@ -379,8 +380,8 @@ export function RepositoryList({ userId }: RepositoryListProps) {
           웹훅 등록됨
           <span
             className={`ml-1 px-2 py-0.5 rounded-full text-xs font-medium ${activeTab === "registered"
-                ? "bg-primary-foreground/20 text-primary-foreground"
-                : "bg-muted text-muted-foreground"
+              ? "bg-primary-foreground/20 text-primary-foreground"
+              : "bg-muted text-muted-foreground"
               }`}
           >
             {loadingWebhooks ? "..." : registeredRepos.length}
@@ -390,8 +391,8 @@ export function RepositoryList({ userId }: RepositoryListProps) {
           variant={activeTab === "unregistered" ? "default" : "ghost"}
           onClick={() => setActiveTab("unregistered")}
           className={`rounded-full gap-2 transition-all ${activeTab === "unregistered"
-              ? "shadow-md shadow-primary/20"
-              : "hover:bg-muted"
+            ? "shadow-md shadow-primary/20"
+            : "hover:bg-muted"
             }`}
         >
           {activeTab === "unregistered" ? (
@@ -402,8 +403,8 @@ export function RepositoryList({ userId }: RepositoryListProps) {
           웹훅 미등록
           <span
             className={`ml-1 px-2 py-0.5 rounded-full text-xs font-medium ${activeTab === "unregistered"
-                ? "bg-primary-foreground/20 text-primary-foreground"
-                : "bg-muted text-muted-foreground"
+              ? "bg-primary-foreground/20 text-primary-foreground"
+              : "bg-muted text-muted-foreground"
               }`}
           >
             {loadingWebhooks ? "..." : unregisteredRepos.length}

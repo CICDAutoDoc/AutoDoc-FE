@@ -18,7 +18,7 @@ export const getUserRepositories = async (userId: string): Promise<UserRepositor
 
     return response.data.repositories;
   } catch (error) {
-    console.error('Failed to fetch repositories:', error);
+
     throw error;
   }
 };
@@ -40,7 +40,7 @@ export const getRepository = async (
     );
     return repo || null;
   } catch (error) {
-    console.error('Failed to fetch repository:', error);
+
     throw error;
   }
 };

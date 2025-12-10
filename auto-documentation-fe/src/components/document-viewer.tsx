@@ -57,7 +57,7 @@ function MermaidDiagram({ chart }: { chart: string }) {
         setSvg(svg);
         setError(null);
       } catch (err) {
-        console.error("Mermaid rendering error:", err);
+
         setError("다이어그램을 렌더링할 수 없습니다.");
       }
     };

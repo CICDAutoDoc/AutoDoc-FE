@@ -30,7 +30,7 @@ export const useAuth = (): UseAuthReturn => {
       try {
         setUser(JSON.parse(storedUser));
       } catch (err) {
-        console.error('Failed to parse stored user:', err);
+
         localStorage.removeItem(USER_STORAGE_KEY);
       }
     }
@@ -40,7 +40,6 @@ export const useAuth = (): UseAuthReturn => {
   // GitHub 로그인 시작
   const login = useCallback(() => {
     const loginUrl = initiateGitHubLogin();
-    console.log('Redirecting to:', loginUrl);
     window.location.href = loginUrl;
   }, []);
 
@@ -68,7 +67,7 @@ export const useAuth = (): UseAuthReturn => {
       }
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to handle callback'));
-      console.error('Error handling GitHub callback:', err);
+
       throw err;
     } finally {
       setLoading(false);

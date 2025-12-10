@@ -80,7 +80,7 @@ export function RepositoryCard({
 
     const accessToken = localStorage.getItem("access_token");
     if (!accessToken) {
-      console.error("인증 토큰이 없습니다. 다시 로그인해주세요.");
+
       return;
     }
 
@@ -124,11 +124,10 @@ export function RepositoryCard({
               </h3>
               <Badge
                 variant="outline"
-                className={`shrink-0 text-xs ${
-                  repository.private
+                className={`shrink-0 text-xs ${repository.private
                     ? "border-amber-300 text-amber-600 bg-amber-50"
                     : "border-emerald-300 text-emerald-600 bg-emerald-50"
-                }`}
+                  }`}
               >
                 {repository.private ? (
                   <Lock className="w-3 h-3 mr-1" />
@@ -153,18 +152,17 @@ export function RepositoryCard({
                 </span>
               ) : (
                 <span
-                  className={`flex items-center gap-1 ${
-                    activeWebhooks.length > 0
+                  className={`flex items-center gap-1 ${activeWebhooks.length > 0
                       ? "text-emerald-600"
                       : "text-muted-foreground"
-                  }`}
+                    }`}
                 >
                   <WebhookIcon className="w-3.5 h-3.5" />
                   {activeWebhooks.length > 0
                     ? `웹훅 활성`
                     : hasWebhooks
-                    ? "웹훅 비활성"
-                    : "웹훅 없음"}
+                      ? "웹훅 비활성"
+                      : "웹훅 없음"}
                 </span>
               )}
             </div>

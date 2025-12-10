@@ -30,7 +30,7 @@ export const getRepositoryWebhooks = async (
 
     return response.data.webhooks;
   } catch (error) {
-    console.error('Failed to fetch webhooks:', error);
+
     throw error;
   }
 };
@@ -52,7 +52,7 @@ export const setupRepository = async (
     );
     return response.data;
   } catch (error) {
-    console.error('Failed to setup repository:', error);
+
     throw error;
   }
 };
@@ -77,7 +77,7 @@ export const deleteWebhook = async (
     );
     return response.data;
   } catch (error) {
-    console.error('Failed to delete webhook:', error);
+
     throw error;
   }
 };
@@ -91,7 +91,7 @@ export const receiveWebhookEvent = async (eventData: any): Promise<any> => {
     const response = await apiClient.post('/github/webhook', eventData);
     return response.data;
   } catch (error) {
-    console.error('Failed to process webhook event:', error);
+
     throw error;
   }
 };

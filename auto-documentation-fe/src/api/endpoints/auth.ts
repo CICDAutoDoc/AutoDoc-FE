@@ -35,7 +35,7 @@ export const handleGitHubCallback = async (
     );
     return response.data;
   } catch (error) {
-    console.error('GitHub callback error:', error);
+
     throw error;
   }
 };

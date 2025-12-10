@@ -42,7 +42,7 @@ export default function AuthCallback() {
         // 성공 시 메인 페이지로 리다이렉트
         router.push("/");
       } catch (err) {
-        console.error("Callback processing error:", err);
+
         setError("인증 처리 중 오류가 발생했습니다.");
         setTimeout(() => {
           router.push("/");

@@ -28,7 +28,7 @@ export const useMultipleWebhooks = (
           const webhooks = await getRepositoryWebhooks(repo.owner, repo.name, userId);
           return { fullName: `${repo.owner}/${repo.name}`, webhooks };
         } catch (err) {
-          console.error(`Failed to fetch webhooks for ${repo.owner}/${repo.name}:`, err);
+
           return { fullName: `${repo.owner}/${repo.name}`, webhooks: [] };
         }
       });

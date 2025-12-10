@@ -24,7 +24,7 @@ export const getLatestDocument = async (
 
     return response.data;
   } catch (error) {
-    console.error('Failed to fetch latest document:', error);
+
     throw error;
   }
 };
@@ -47,7 +47,7 @@ export const updateDocument = async (
 
     return response.data;
   } catch (error) {
-    console.error('Failed to update document:', error);
+
     throw error;
   }
 };
@@ -67,7 +67,7 @@ export const getDocumentDiff = async (
 
     return response.data;
   } catch (error) {
-    console.error('Failed to fetch document diff:', error);
+
     throw error;
   }
 };

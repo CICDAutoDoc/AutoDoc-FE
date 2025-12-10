@@ -167,6 +167,24 @@ export interface DocumentDiffResponse {
   diff_lines: string[];
 }
 
+// 문서 목록 조회 파라미터
+export interface GetDocumentsParams {
+  repository_name?: string;
+  status?: 'generated' | 'edited' | 'reviewed' | 'failed';
+  limit?: number;
+  offset?: number;
+}
+
+// 문서 목록 아이템 (목록 조회 시 반환되는 간소화된 문서)
+export interface DocumentListItem {
+  id: number;
+  title: string;
+  content: string;
+  status: string;
+  repository_name: string;
+  created_at: string;
+}
+
 // API Error types
 export interface ApiError {
   message: string;

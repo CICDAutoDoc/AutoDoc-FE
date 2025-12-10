@@ -1,11 +1,47 @@
 import apiClient from '../client';
 import {
   Document,
+  DocumentListItem,
+  GetDocumentsParams,
   LatestDocumentResponse,
   UpdateDocumentRequest,
   UpdateDocumentResponse,
   DocumentDiffResponse,
 } from '../types';
+
+/**
+ * 문서 목록 조회
+ * @param params - 조회 파라미터 (repository_name, status, limit, offset)
+ * @returns 문서 목록
+ */
+export const getDocuments = async (
+  params: GetDocumentsParams = {}
+): Promise<DocumentListItem[]> => {
+  try {
+    const queryParams = new URLSearchParams();
+
+    if (params.repository_name) {
+      queryParams.set('repository_name', params.repository_name);
+    }
+    if (params.status) {
+      queryParams.set('status', params.status);
+    }
+    if (params.limit !== undefined) {
+      queryParams.set('limit', params.limit.toString());
+    }
+    if (params.offset !== undefined) {
+      queryParams.set('offset', params.offset.toString());
+    }
+
+    const queryString = queryParams.toString();
+    const url = queryString ? `/documents/?${queryString}` : '/documents/';
+
+    const response = await apiClient.get<DocumentListItem[]>(url);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
 
 /**
  * 저장소별 최신 문서 조회
@@ -25,6 +61,20 @@ export const getLatestDocument = async (
     return response.data;
   } catch (error) {
 
+    throw error;
+  }
+};
+
+/**
+ * 문서 상세 조회
+ * @param documentId - 문서 ID
+ * @returns 문서 상세
+ */
+export const getDocument = async (documentId: number): Promise<Document> => {
+  try {
+    const response = await apiClient.get<Document>(`/documents/${documentId}`);
+    return response.data;
+  } catch (error) {
     throw error;
   }
 };
@@ -73,6 +123,8 @@ export const getDocumentDiff = async (
 };
 
 export const documentsApi = {
+  getDocuments,
+  getDocument,
   getLatestDocument,
   updateDocument,
   getDocumentDiff,
